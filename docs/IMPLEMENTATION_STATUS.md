@@ -19,3 +19,7 @@ The original headless suite passed 280 assertions. The actual Godot 4.7.2 engine
 No Steam Deck hardware, sleep/resume or performance test has been performed. No Steamworks integration, audio/graphics polish, multiple assignments, larger incremental tiers or external playtesting yet. Do not claim Valve Deck Verified status.
 
 The game is a completed **playable first-case build**, not a complete commercial game.
+
+## New illustrated assets / Steam publishing preparation — November 8, 2026
+
+The generated portraits, Oddford wide scene, event cards and stamp icons are incorporated into the Godot UI as local assets. The player may open the town panorama or six-person cast register without a mouse; B closes the scene. A new Godot art regression covers texture imports, modals and a complete seven-day case. The gameplay engine, progression rules and no-backend design are unchanged. `docs/STEAM_RELEASE_GUIDE.md` documents Steam Direct signup, AI disclosure, SteamPipe builds, reviews and Steam Deck acceptance. The first case is playable, not a commercially complete game; physical Deck testing and additional content are still needed.

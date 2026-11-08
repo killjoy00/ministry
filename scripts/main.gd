@@ -17,12 +17,23 @@ var selected_event: String = ""
 var feedback: String = ""
 var root_view: VBoxContainer
 var initial_focus: Control
+var gallery_overlay: Control = null
 
 func _ready() -> void:
 	sim = SimulationEngine.new()
 	_render()
 
 func _input(event: InputEvent) -> void:
+	# Gallery is a modal: back closes it rather than accidentally clearing
+	# an intervention or advancing a simulation step beneath the artwork.
+	if gallery_overlay != null:
+		if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B:
+			_close_gallery()
+			get_viewport().set_input_as_handled()
+		elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+			_close_gallery()
+			get_viewport().set_input_as_handled()
+		return
 	if event is InputEventJoypadButton and event.pressed:
 		match event.button_index:
 			JOY_BUTTON_LEFT_SHOULDER:
@@ -120,6 +131,7 @@ func _new_case() -> void:
 # Original storybook visual direction: illustrated miniature town, a physical
 # paper case file and tactile rubber stamps. Game logic stays in CaseSimulation.
 func _render() -> void:
+	gallery_overlay = null
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
@@ -219,11 +231,29 @@ func _case_file() -> void:
 	var gerald_holder := _card(Color("#ecd7aa"), Color("#9a7854"), 2)
 	gerald_holder.custom_minimum_size.x = 140
 	row.add_child(gerald_holder)
-	gerald_holder.add_child(_illustration("res://assets/gerald.svg", Vector2(128, 132)))
+	gerald_holder.add_child(_illustration("res://assets/illustrated/portrait_gerald.webp", Vector2(128, 132)))
 	var village_holder := _card(Color("#ddcfac"), Color("#967d5c"), 2)
 	village_holder.custom_minimum_size.x = 390
 	row.add_child(village_holder)
-	village_holder.add_child(_illustration("res://assets/town.svg", Vector2(379, 145)))
+	var town_column := VBoxContainer.new()
+	town_column.add_theme_constant_override("separation", 4)
+	village_holder.add_child(town_column)
+	town_column.add_child(_illustration("res://assets/illustrated/oddford_banner.webp", Vector2(368, 98)))
+	var doors := HBoxContainer.new()
+	doors.add_theme_constant_override("separation", 6)
+	town_column.add_child(doors)
+	var map_button := _button("VIEW ODDFORD")
+	map_button.custom_minimum_size.y = 31
+	map_button.add_theme_font_size_override("font_size", 15)
+	map_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	map_button.pressed.connect(_open_gallery.bind("town"))
+	doors.add_child(map_button)
+	var cast_button := _button("MEET THE TOWN")
+	cast_button.custom_minimum_size.y = 31
+	cast_button.add_theme_font_size_override("font_size", 15)
+	cast_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cast_button.pressed.connect(_open_gallery.bind("cast"))
+	doors.add_child(cast_button)
 
 func _event_tray(parent: HBoxContainer) -> void:
 	var panel := _card(CARD, BORDER)
@@ -261,7 +291,7 @@ func _event_tray(parent: HBoxContainer) -> void:
 		var picked: bool = str(rule["id"]) == selected_event
 		var button := _button(_event_caption(rule), picked)
 		button.icon = _event_icon(str(rule["id"]))
-		button.expand_icon = false
+		button.expand_icon = true
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.add_theme_constant_override("h_separation", 12)
 		button.custom_minimum_size.y = 73
@@ -272,16 +302,26 @@ func _event_tray(parent: HBoxContainer) -> void:
 		if initial_focus == null or picked:
 			initial_focus = button
 
+func _incident_name(id: String) -> String:
+	# Data-driven art families: a card remains legible even for events without
+	# a bespoke illustration. The rules engine does not depend on artwork.
+	if "rain" in id or "indoor_parade" in id or "fair" in id or "crowd" in id:
+		return "rain"
+	if "sandwich" in id or "goose_hungry" in id or "bread" in id or "endorsement" in id:
+		return "sandwich"
+	if "post" in id or "letter" in id or "invitation" in id or "rulebook" in id or "petition" in id:
+		return "letter"
+	if "wind" in id or "traffic" in id or "coffee" in id or "posters" in id:
+		return "wind"
+	if "camera" in id or "photo" in id or "front_page" in id or "viral" in id or "poll" in id:
+		return "newspaper"
+	return "election"
+
 func _event_icon(id: String) -> Texture2D:
-	if "rain" in id or "weather" in id or "wind" in id:
-		return load("res://assets/weather.svg")
-	if "sandwich" in id or "bread" in id or "lunch" in id or "goose_hungry" in id:
-		return load("res://assets/sandwich.svg")
-	if "letter" in id or "post" in id or "delivery" in id or "invitation" in id:
-		return load("res://assets/letter.svg")
-	if "schedule" in id or "time" in id or "late" in id:
-		return load("res://assets/clock.svg")
-	return load("res://assets/incident.svg")
+	return load("res://assets/illustrated/incident_%s_small.webp" % _incident_name(id)) as Texture2D
+
+func _event_illustration(id: String) -> String:
+	return "res://assets/illustrated/incident_%s.webp" % _incident_name(id)
 
 func _stamp_desk(parent: HBoxContainer) -> void:
 	var panel := _card(Color("#f0dfbb"), Color("#af875f"), 2)
@@ -293,7 +333,7 @@ func _stamp_desk(parent: HBoxContainer) -> void:
 	var heading := HBoxContainer.new()
 	heading.add_theme_constant_override("separation", 8)
 	outer.add_child(heading)
-	heading.add_child(_illustration("res://assets/ink.svg", Vector2(44, 35)))
+	heading.add_child(_illustration("res://assets/illustrated/stamp_%s_small.webp" % selected_stamp, Vector2(44, 40)))
 	var desk_title := _label("THE STAMP DESK", 23, INK, true)
 	desk_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	heading.add_child(desk_title)
@@ -316,7 +356,8 @@ func _stamp_desk(parent: HBoxContainer) -> void:
 	var stamp_symbols := {"nudge": "NUDGE", "misfile": "MISFILE", "reschedule": "RESCHEDULE", "domino": "DOMINO"}
 	for id in SimulationEngine.STAMP_ORDER:
 		var stamp_button := _button(stamp_symbols[id], id == selected_stamp)
-		stamp_button.icon = load("res://assets/stamp_%s.svg" % id) as Texture2D
+		stamp_button.icon = load("res://assets/illustrated/stamp_%s_small.webp" % id) as Texture2D
+		stamp_button.expand_icon = true
 		stamp_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		stamp_button.add_theme_constant_override("h_separation", 8)
 		stamp_button.custom_minimum_size = Vector2(193, 43)
@@ -327,10 +368,17 @@ func _stamp_desk(parent: HBoxContainer) -> void:
 	var rule: Dictionary = sim.get_rule(selected_event)
 	if not rule.is_empty():
 		var stamp: Dictionary = SimulationEngine.STAMPS[selected_stamp]
-		var stamp_info := _label("%s  /  %d influence  /  +%d strain" % [stamp["name"], stamp["cost"], stamp["strain"]], 17, BURGUNDY, true)
-		# Stamp cost is always visible above the grid, not concealed below a scroll.
-		desk.add_child(_label(str(stamp["description"]) + " - " + str(rule["title"]), 16, INK))
-		desk.add_child(_label("MAY CAUSE: " + _effects_label(rule), 15, MUTED))
+		# Selected incident art reveals which miniature story the stamp may alter.
+		var incident_view := HBoxContainer.new()
+		incident_view.add_theme_constant_override("separation", 8)
+		desk.add_child(incident_view)
+		incident_view.add_child(_illustration(_event_illustration(str(rule["id"])), Vector2(123, 110)))
+		var narrative := VBoxContainer.new()
+		narrative.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		incident_view.add_child(narrative)
+		narrative.add_child(_label(str(rule["title"]), 16, BURGUNDY, true))
+		narrative.add_child(_label(str(stamp["description"]), 15, INK))
+		narrative.add_child(_label("MAY CAUSE: " + _effects_label(rule), 14, MUTED))
 		if selected_stamp == "misfile" and (rule["misfile_facts"] as Array).is_empty():
 			desk.add_child(_label("Cannot redirect this particular incident.", 15, BURGUNDY))
 	var pending_text := "NO INTERVENTION FILED"
@@ -366,7 +414,7 @@ func _result_screen() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 26)
 	case.add_child(row)
-	row.add_child(_illustration("res://assets/gerald.svg", Vector2(205, 230)))
+	row.add_child(_illustration("res://assets/illustrated/incident_election.webp" if sim.status == "won" else "res://assets/illustrated/portrait_clerk.webp", Vector2(240, 230)))
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 10)
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -398,6 +446,76 @@ func _result_screen() -> void:
 	content.add_child(new_case)
 	if initial_focus == null:
 		initial_focus = new_case
+
+
+func _open_gallery(which: String) -> void:
+	if gallery_overlay != null:
+		_close_gallery()
+	gallery_overlay = ColorRect.new()
+	gallery_overlay.name = "IllustratedGallery"
+	gallery_overlay.color = Color("#162c31ee")
+	gallery_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	gallery_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(gallery_overlay)
+	var frame := MarginContainer.new()
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for edge in ["left", "right"]:
+		frame.add_theme_constant_override("margin_" + edge, 53)
+	for edge in ["top", "bottom"]:
+		frame.add_theme_constant_override("margin_" + edge, 36)
+	gallery_overlay.add_child(frame)
+	var paper := _card(PAPER, GOLD, 3)
+	frame.add_child(paper)
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 8)
+	paper.add_child(layout)
+	var toolbar := HBoxContainer.new()
+	layout.add_child(toolbar)
+	var caption := _label("ODDFORD  /  OFFICIAL SURVEILLANCE" if which == "town" else "ODDFORD  /  REGISTER OF PECULIAR RESIDENTS", 26, INK, true)
+	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	toolbar.add_child(caption)
+	var back := _button("B  RETURN TO CASE", false, true)
+	back.custom_minimum_size = Vector2(220, 45)
+	back.pressed.connect(_close_gallery)
+	toolbar.add_child(back)
+	if which == "town":
+		var town := _illustration("res://assets/illustrated/oddford_square.webp", Vector2(990, 574))
+		town.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		layout.add_child(town)
+		layout.add_child(_label("Extraordinary events are routinely reported from the bakery, town hall and high street.", 17, MUTED))
+	else:
+		var roster := GridContainer.new()
+		roster.columns = 3
+		roster.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		roster.add_theme_constant_override("h_separation", 14)
+		roster.add_theme_constant_override("v_separation", 10)
+		layout.add_child(roster)
+		var people := [
+			["gerald", "GERALD  /  MAYORAL ASPIRANT"],
+			["clerk", "MISS QUILL  /  MINISTRY CLERK"],
+			["mayor", "HUXLEY  /  INCUMBENT MAYOR"],
+			["reporter", "THE REPORTER  /  OBSERVER"],
+			["organizer", "PIP  /  PETITION ORGANIZER"],
+			["baker", "NORA  /  BAKER"]
+		]
+		for person in people:
+			var box := VBoxContainer.new()
+			box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			box.add_theme_constant_override("separation", 3)
+			roster.add_child(box)
+			box.add_child(_illustration("res://assets/illustrated/portrait_%s.webp" % person[0], Vector2(180, 225)))
+			var name := _label(str(person[1]), 17, BURGUNDY, true)
+			name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			box.add_child(name)
+	_focus_after_layout(back)
+
+func _close_gallery() -> void:
+	if gallery_overlay == null:
+		return
+	gallery_overlay.queue_free()
+	gallery_overlay = null
+	if is_instance_valid(initial_focus) and initial_focus.is_inside_tree():
+		initial_focus.grab_focus()
 
 func _chronicle() -> void:
 	var ledger := _card(Color("#fcf2dd"), BORDER)

@@ -23,3 +23,7 @@ The playable case should feel like a **physical dossier** with miniature scenes,
 This first revision supplies authored SVG town/character/seal art and a rebuilt UI while leaving the rules engine untouched. It is **not** the final illustrated town simulation or commercial-quality hand-painted artwork. Next milestone: townsfolk, animated consequences per day, stamp press animations, and interactive geographic event locations. Replace flat placeholders only when equivalent functional controls remain accessible on Steam Deck.
 
 Art is part of the definition of done. CI runs `tests/art_smoke.gd` to ensure required illustrations are bundled in actual Godot scenes.
+
+## AI-assisted illustrated production pass — November 8, 2026
+
+Additional pre-generated artwork (not live-generated content) lives under `assets/illustrated/` as optimized local WebP textures. The source portraits, Oddford landscape, event-card artwork and collectible seals are from the consistent storybook art direction. Character crops were cleaned to avoid contact-sheet neighbors and loaded as six individual portraits; six narrative incidents and four rubber stamp designs are each bound to in-game controls. The result screen also uses an illustration. All shipped asset content must be disclosed as pre-generated AI-assisted in Steam's Content Survey (see `docs/STEAM_RELEASE_GUIDE.md`). Keep future animations consistent with the character and Oddford designs. Do not replace the images with generic flat UI placeholders.

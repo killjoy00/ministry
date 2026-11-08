@@ -34,3 +34,7 @@ Each case lasts seven in-game days. You can stage interventions, watch causal ev
 - Text is legible on the actual Steam Deck; saving and suspend/resume work.
 
 **Not yet verified on actual Steam Deck hardware.** Headless Godot CI and rendered Linux desktop checks are not a substitute.
+
+## Illustrated case scene
+
+The top dossier offers **VIEW ODDFORD** and **MEET THE TOWN**; use D-pad/A to open either. Press **B** (or Escape) to close the illustration and return to the same case. The incident cards and selected-incident preview use different illustrations, and all four seals now have bespoke stamp art.
