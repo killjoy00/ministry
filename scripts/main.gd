@@ -142,7 +142,18 @@ func _render() -> void:
 	_chronicle()
 	_footer()
 	if initial_focus != null:
-		initial_focus.grab_focus.call_deferred()
+		_focus_after_layout(initial_focus)
+
+func _focus_after_layout(target: Control) -> void:
+	# The headless smoke test may render before the scene tree is active.
+	if not is_inside_tree():
+		return
+	var tree := get_tree()
+	# Focus only after the layout pass: early focus can scroll the selected
+	# event offscreen even though it is the first opportunity.
+	await tree.process_frame
+	if is_instance_valid(target) and target.is_inside_tree():
+		target.grab_focus()
 
 func _header() -> void:
 	var top := HBoxContainer.new()
@@ -223,17 +234,21 @@ func _active_screen() -> void:
 	var right := _card(CARD)
 	right.custom_minimum_size.x = 425
 	main_row.add_child(right)
+	# The action buttons stay visible while the longer stamp descriptions scroll.
+	var desk_shell := VBoxContainer.new()
+	desk_shell.add_theme_constant_override("separation", 7)
+	right.add_child(desk_shell)
+	desk_shell.add_child(_label("THE STAMP DESK", 25, INK, true))
+	desk_shell.add_child(_label("LB/RB stamps  ·  X approves  ·  Y next day", 16, MUTED))
 	var desk_scroll := ScrollContainer.new()
 	desk_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	desk_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	desk_scroll.follow_focus = true
-	right.add_child(desk_scroll)
+	desk_shell.add_child(desk_scroll)
 	var desk := VBoxContainer.new()
 	desk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	desk.add_theme_constant_override("separation", 7)
 	desk_scroll.add_child(desk)
-	desk.add_child(_label("THE STAMP DESK", 25, INK, true))
-	desk.add_child(_label("LB/RB stamps  ·  X approves  ·  Y next day", 16, MUTED))
 	var stamps := GridContainer.new()
 	stamps.columns = 2
 	stamps.add_theme_constant_override("h_separation", 6)
@@ -241,13 +256,15 @@ func _active_screen() -> void:
 	desk.add_child(stamps)
 	for id in SimulationEngine.STAMP_ORDER:
 		var stamp: Dictionary = SimulationEngine.STAMPS[id]
-		var stamp_button := _button("%s\n%d Influence / +%d Strain" % [stamp["name"], stamp["cost"], stamp["strain"]], id == selected_stamp)
-		stamp_button.custom_minimum_size = Vector2(187, 63)
+		var stamp_button := _button(str(stamp["name"]), id == selected_stamp)
+		stamp_button.custom_minimum_size = Vector2(187, 44)
 		stamp_button.add_theme_font_size_override("font_size", 17)
 		stamp_button.pressed.connect(_select_stamp.bind(id))
 		stamps.add_child(stamp_button)
 	var rule := sim.get_rule(selected_event)
 	if not rule.is_empty():
+		var selected_stamp_info: Dictionary = SimulationEngine.STAMPS[selected_stamp]
+		desk.add_child(_label("COST: %d Influence  /  +%d Strain" % [selected_stamp_info["cost"], selected_stamp_info["strain"]], 16, MUTED))
 		desk.add_child(_label("SELECTED: " + str(rule["title"]), 20, BURGUNDY, true))
 		desk.add_child(_label(SimulationEngine.STAMPS[selected_stamp]["description"], 18, MUTED))
 		desk.add_child(_label("Possible consequences: " + _effects_label(rule), 17, INK))
@@ -257,23 +274,27 @@ func _active_screen() -> void:
 	if not sim.pending.is_empty():
 		pending_text = "%s / %s" % [SimulationEngine.STAMPS[sim.pending["stamp"]]["name"], sim.get_rule(str(sim.pending["target"]))["title"]]
 	desk.add_child(_label("APPROVAL: " + pending_text, 17, GREEN, true))
+	desk.add_child(_label("REALITY FORECAST: " + sim.forecast(), 17, BURGUNDY))
 	var controls := HBoxContainer.new()
 	controls.add_theme_constant_override("separation", 7)
-	desk.add_child(controls)
+	desk_shell.add_child(controls)
 	var approve := _button("X  APPROVE")
+	approve.custom_minimum_size.x = 220
+	approve.autowrap_mode = TextServer.AUTOWRAP_OFF
 	approve.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	approve.disabled = not sim.can_stamp(selected_stamp, selected_event)
 	approve.pressed.connect(_approve_stamp)
 	controls.add_child(approve)
 	var clear := _button("B  CLEAR")
+	clear.custom_minimum_size.x = 120
+	clear.autowrap_mode = TextServer.AUTOWRAP_OFF
 	clear.disabled = sim.pending.is_empty()
 	clear.pressed.connect(_clear_stamp)
 	controls.add_child(clear)
 	var advance := _button("Y  ADVANCE DAY", true, true)
 	advance.custom_minimum_size.y = 55
 	advance.pressed.connect(_advance_day)
-	desk.add_child(advance)
-	desk.add_child(_label("REALITY FORECAST: " + sim.forecast(), 17, BURGUNDY))
+	desk_shell.add_child(advance)
 
 func _result_screen() -> void:
 	var panel := _card(CARD)
@@ -320,6 +341,7 @@ func _chronicle() -> void:
 	log_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(log_scroll)
 	var log_items := VBoxContainer.new()
+	log_items.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	log_items.add_theme_constant_override("separation", 3)
 	log_scroll.add_child(log_items)
 	for entry in sim.history_summary(9):
@@ -334,7 +356,12 @@ func _footer() -> void:
 	var note := _label("PROBABILITY IS AN ADMINISTRATIVE MATTER.  ·  RUN SEED: %d" % sim.seed, 15, MUTED)
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line.add_child(note)
-	line.add_child(_label(feedback, 15, GREEN))
+	var feedback_label := _label(feedback, 15, GREEN)
+	feedback_label.custom_minimum_size.x = 340
+	feedback_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	feedback_label.clip_text = true
+	feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	line.add_child(feedback_label)
 
 func _event_caption(rule: Dictionary) -> String:
 	var chance: int = roundi(float(rule["chance"]) * 100.0)
