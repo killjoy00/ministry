@@ -7,6 +7,7 @@ var assertions: int = 0
 var failures: Array = []
 
 func _initialize() -> void:
+	_test_main_scene_load()
 	_test_seed_replay()
 	_test_requirements_and_once_only()
 	_test_stamps()
@@ -21,6 +22,19 @@ func _initialize() -> void:
 			printerr("FAIL: ", failure)
 		printerr("FAILED: %d of %d assertions" % [failures.size(), assertions])
 		quit(1)
+
+func _test_main_scene_load() -> void:
+	var scene: PackedScene = load("res://scenes/main.tscn")
+	_check(scene != null, "Main UI scene must parse and load")
+	if scene == null:
+		return
+	var instance: Node = scene.instantiate()
+	_check(instance != null, "Main UI scene must instantiate")
+	if instance == null:
+		return
+	root.add_child(instance)
+	_check(instance.get_child_count() >= 2, "Main scene builds controller-first interface")
+	instance.queue_free()
 
 func _check(condition: bool, message: String) -> void:
 	assertions += 1
