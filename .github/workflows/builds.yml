@@ -16,6 +16,14 @@ jobs:
       image: barichello/godot-ci:4.7.2
     steps:
       - uses: actions/checkout@v4
+      - name: Configure Godot export templates
+        run: |
+          set -eu
+          source=/root/.local/share/godot/export_templates/4.7.2.stable
+          destination="$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          test -d "$source"
+          mkdir -p "$(dirname "$destination")"
+          ln -s "$source" "$destination"
       - name: Import
         run: godot --headless --path . --editor --quit
       - name: Check game engine
