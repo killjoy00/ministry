@@ -1,0 +1,23 @@
+name: Godot prototype checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  godot-headless:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    container:
+      image: barichello/godot-ci:4.7.2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Import project
+        run: godot --headless --path . --editor --quit
+      - name: Smoke tests
+        run: godot --headless --path . --script res://tests/smoke.gd
