@@ -155,10 +155,20 @@ func _header() -> void:
 	left.add_child(_label("THE MINISTRY OF COINCIDENCES", 34, BURGUNDY, true))
 	left.add_child(_label("DEPARTMENT OF UNLIKELY BUT PERFECTLY LEGAL EVENTS", 16, MUTED))
 	var right := VBoxContainer.new()
+	# Reserve width before the HBox minimum-size pass so the status labels
+	# cannot wrap into a vertical strip and push gameplay below the viewport.
+	right.custom_minimum_size.x = 345
+	right.size_flags_horizontal = Control.SIZE_SHRINK_END
 	right.add_theme_constant_override("separation", 1)
 	top.add_child(right)
-	right.add_child(_label("CASE #001  /  DAY %d OF %d" % [sim.day, sim.case_info["deadline"]], 22, INK, true))
-	right.add_child(_label("CIVIL SERVICE MERIT  %d" % sim.profile["merit"], 17, MUTED))
+	var case_number := _label("CASE #001  /  DAY %d OF %d" % [sim.day, sim.case_info["deadline"]], 22, INK, true)
+	case_number.autowrap_mode = TextServer.AUTOWRAP_OFF
+	case_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	right.add_child(case_number)
+	var merit_number := _label("CIVIL SERVICE MERIT  %d" % sim.profile["merit"], 17, MUTED)
+	merit_number.autowrap_mode = TextServer.AUTOWRAP_OFF
+	merit_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	right.add_child(merit_number)
 
 func _active_screen() -> void:
 	var summary := _card(BURGUNDY)
