@@ -1,7 +1,7 @@
 extends Control
 ## Card-first UI optimized for 1280x800 and controller-only navigation.
 
-const Engine = preload("res://scripts/simulation/case_simulation.gd")
+const SimulationEngine = preload("res://scripts/simulation/case_simulation.gd")
 const INK = Color("#342c37")
 const MUTED = Color("#645d60")
 const PAPER = Color("#f5eee1")
@@ -19,7 +19,7 @@ var root_view: VBoxContainer
 var initial_focus: Control
 
 func _ready() -> void:
-	sim = Engine.new()
+	sim = SimulationEngine.new()
 	_render()
 
 func _input(event: InputEvent) -> void:
@@ -61,9 +61,9 @@ func _input(event: InputEvent) -> void:
 func _cycle_stamp(direction: int) -> void:
 	if sim.status != "active":
 		return
-	var index: int = Engine.STAMP_ORDER.find(selected_stamp)
-	selected_stamp = Engine.STAMP_ORDER[posmod(index + direction, Engine.STAMP_ORDER.size())]
-	feedback = "Selected %s." % Engine.STAMPS[selected_stamp]["name"]
+	var index: int = SimulationEngine.STAMP_ORDER.find(selected_stamp)
+	selected_stamp = SimulationEngine.STAMP_ORDER[posmod(index + direction, SimulationEngine.STAMP_ORDER.size())]
+	feedback = "Selected %s." % SimulationEngine.STAMPS[selected_stamp]["name"]
 	_render()
 
 func _select_event(id: String) -> void:
@@ -222,8 +222,8 @@ func _active_screen() -> void:
 	stamps.add_theme_constant_override("h_separation", 6)
 	stamps.add_theme_constant_override("v_separation", 6)
 	desk.add_child(stamps)
-	for id in Engine.STAMP_ORDER:
-		var stamp: Dictionary = Engine.STAMPS[id]
+	for id in SimulationEngine.STAMP_ORDER:
+		var stamp: Dictionary = SimulationEngine.STAMPS[id]
 		var stamp_button := _button("%s\n%d Influence / +%d Strain" % [stamp["name"], stamp["cost"], stamp["strain"]], id == selected_stamp)
 		stamp_button.custom_minimum_size = Vector2(187, 63)
 		stamp_button.add_theme_font_size_override("font_size", 17)
@@ -232,13 +232,13 @@ func _active_screen() -> void:
 	var rule := sim.get_rule(selected_event)
 	if not rule.is_empty():
 		desk.add_child(_label("SELECTED: " + str(rule["title"]), 20, BURGUNDY, true))
-		desk.add_child(_label(Engine.STAMPS[selected_stamp]["description"], 18, MUTED))
+		desk.add_child(_label(SimulationEngine.STAMPS[selected_stamp]["description"], 18, MUTED))
 		desk.add_child(_label("Possible consequences: " + _effects_label(rule), 17, INK))
 		if selected_stamp == "misfile" and (rule["misfile_facts"] as Array).is_empty():
 			desk.add_child(_label("Misfile not applicable to this event.", 16, BURGUNDY))
 	var pending_text := "NONE — let events unfold normally"
 	if not sim.pending.is_empty():
-		pending_text = "%s / %s" % [Engine.STAMPS[sim.pending["stamp"]]["name"], sim.get_rule(str(sim.pending["target"]))["title"]]
+		pending_text = "%s / %s" % [SimulationEngine.STAMPS[sim.pending["stamp"]]["name"], sim.get_rule(str(sim.pending["target"]))["title"]]
 	desk.add_child(_label("APPROVAL: " + pending_text, 17, GREEN, true))
 	var controls := HBoxContainer.new()
 	controls.add_theme_constant_override("separation", 7)
