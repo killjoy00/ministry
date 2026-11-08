@@ -38,6 +38,8 @@ jobs:
         run: godot --headless --path . --script res://tests/smoke.gd
       - name: Illustrations and screen identity
         run: godot --headless --path . --script res://tests/art_smoke.gd
+      - name: Illustrated world and controller gallery
+        run: godot --headless --path . --script res://tests/illustrated_smoke.gd
       - name: Layout at Steam Deck resolution
         run: godot --headless --path . --script res://tests/ui_smoke.gd
       - name: Real-engine balance regression

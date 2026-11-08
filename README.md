@@ -50,3 +50,7 @@ See [Steam Deck and Windows playtesting instructions](docs/PLAYTEST.md). These a
 ## Illustrated art direction
 
 The prototype now includes original vector illustrations of the town of Oddford and Gerald, a Ministry seal, four distinct bureaucratic stamps, incident illustrations, and a case-file-inspired controller UI. See [the art direction document](docs/ART_DIRECTION.md). This is the first art pass, not the finished animated town simulation.
+
+## Illustrated town, people and stamps (November 2026)
+
+This build includes the six-person Oddford cast, a painted town panorama, six scenario-event illustrations and four illustrated rubber stamps, all packaged as offline WebP textures under `assets/illustrated/`. Case scenes, choice cards, stamp controls and results now use the illustrated assets. **VIEW ODDFORD** and **MEET THE TOWN** open controller-accessible scenes (B/Escape returns). The AI-assisted images were generated before shipping, not at runtime. See [`docs/ART_DIRECTION.md`](docs/ART_DIRECTION.md) and the [Steam publishing checklist](docs/STEAM_RELEASE_GUIDE.md).
