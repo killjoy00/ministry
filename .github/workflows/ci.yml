@@ -21,3 +21,7 @@ jobs:
         run: godot --headless --path . --editor --quit
       - name: Smoke tests
         run: godot --headless --path . --script res://tests/smoke.gd
+      - name: 1280x800 interface regression
+        run: godot --headless --path . --script res://tests/ui_smoke.gd
+      - name: Deterministic balance regression
+        run: godot --headless --path . --script res://tests/balance.gd

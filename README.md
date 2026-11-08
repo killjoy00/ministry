@@ -6,7 +6,7 @@ A Steam Deck-first, offline, turn-based incremental roguelite about arranging im
 
 ## Status
 
-**Pre-alpha prototype**. One playable case: **A Fowl Election**. The game is not yet released and is not certified or tested on Steam Deck hardware. This repository starter contains source, a full design doc, Godot headless smoke tests, and on-demand export workflows. See [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) and [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
+**Playtest-ready pre-alpha**. One complete vertical-slice case: **A Fowl Election**. The game is not yet released and is not certified or tested on Steam Deck hardware. This repository starter contains source, a full design doc, Godot headless smoke tests, and on-demand export workflows. See [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) and [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
 
 ## Run
 
@@ -40,3 +40,9 @@ godot --headless --path . --script res://tests/smoke.gd
 Run `python3 tests/validate_catalog.py` for an additional offline catalog/balance check. GitHub Actions runs the real engine tests on PRs, and `Build Windows and Linux prototypes` generates downloadable binaries when manually dispatched or when changes are pushed to `prototype-build`.
 
 No paid services, online accounts, telemetry, or backend required.
+
+## Download a playable test build
+
+Open [GitHub Actions](https://github.com/killjoy00/ministry/actions/workflows/builds.yml), choose the latest successful **Build Windows and Linux prototypes** run, and download its artifact. Inside, choose **ministry-steam-deck-linux.tar.gz** or **ministry-windows.zip**.
+
+See [Steam Deck and Windows playtesting instructions](docs/PLAYTEST.md). These are offline test builds, not an officially Steam Deck Verified release. The GitHub workflow creates fresh binaries from each tested revision.
