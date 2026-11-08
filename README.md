@@ -43,6 +43,6 @@ No paid services, online accounts, telemetry, or backend required.
 
 ## Download a playable test build
 
-Open [GitHub Actions](https://github.com/killjoy00/ministry/actions/workflows/builds.yml), choose the latest successful **Build Windows and Linux prototypes** run, and download its artifact. Inside, choose **ministry-steam-deck-linux.tar.gz** or **ministry-windows.zip**.
+Open [GitHub Actions](https://github.com/killjoy00/ministry/actions/workflows/builds.yml), choose the latest successful **Build Windows and Linux prototypes** run, and download its artifact. Inside, use **ministry-steam-deck-linux.tar.gz** for Steam Deck, or keep **ministry-of-coincidences-windows.exe** and **ministry-of-coincidences-windows.pck** together for Windows. Some runs also include **ministry-windows.zip**; if present, extract that instead.
 
 See [Steam Deck and Windows playtesting instructions](docs/PLAYTEST.md). These are offline test builds, not an officially Steam Deck Verified release. The GitHub workflow creates fresh binaries from each tested revision.

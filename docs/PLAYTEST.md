@@ -11,7 +11,7 @@ This is an **offline pre-alpha** of *A Fowl Election*, not a complete Steam rele
 
 ## Windows
 
-Extract **ministry-windows.zip** and open the .exe. The matching .pck must remain next to it.
+The GitHub Actions artifact contains **ministry-of-coincidences-windows.exe** and **ministry-of-coincidences-windows.pck**; keep both together and run the .exe. If a **ministry-windows.zip** is included, extract that instead. The two-file package works without installing Godot.
 
 ## Controls
 
