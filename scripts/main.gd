@@ -173,14 +173,15 @@ func _header() -> void:
 func _active_screen() -> void:
 	var summary := _card(BURGUNDY)
 	root_view.add_child(summary)
+	var summary_body := VBoxContainer.new()
+	summary_body.add_theme_constant_override("separation", 6)
+	summary.add_child(summary_body)
+	summary_body.add_child(_label("A FOWL ELECTION", 25, Color.WHITE, true))
+	summary_body.add_child(_label("Elect Gerald the Goose. Direct appointment is forbidden under Regulation 19-B.", 18, Color("#f9edea")))
+	# Keep objective text and readouts in separate rows at 1280x800.
 	var stats := HBoxContainer.new()
 	stats.add_theme_constant_override("separation", 30)
-	summary.add_child(stats)
-	var objective := VBoxContainer.new()
-	objective.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	objective.add_child(_label("A FOWL ELECTION", 25, Color.WHITE, true))
-	objective.add_child(_label("Elect Gerald the Goose. Direct appointment is forbidden under Regulation 19-B.", 18, Color("#f9edea")))
-	stats.add_child(objective)
+	summary_body.add_child(stats)
 	stats.add_child(_metric("GOOSE SUPPORT", "%d / %d" % [sim.support, sim.case_info["required_support"]]))
 	stats.add_child(_metric("INFLUENCE", "%d / %d" % [sim.influence, sim.maximum_influence()]))
 	stats.add_child(_metric("REALITY STRAIN", "%d / 6" % sim.strain))
@@ -222,11 +223,17 @@ func _active_screen() -> void:
 	var right := _card(CARD)
 	right.custom_minimum_size.x = 425
 	main_row.add_child(right)
+	var desk_scroll := ScrollContainer.new()
+	desk_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	desk_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	desk_scroll.follow_focus = true
+	right.add_child(desk_scroll)
 	var desk := VBoxContainer.new()
+	desk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	desk.add_theme_constant_override("separation", 7)
-	right.add_child(desk)
+	desk_scroll.add_child(desk)
 	desk.add_child(_label("THE STAMP DESK", 25, INK, true))
-	desk.add_child(_label("LB / RB switches stamps  ·  X approves", 16, MUTED))
+	desk.add_child(_label("LB/RB stamps  ·  X approves  ·  Y next day", 16, MUTED))
 	var stamps := GridContainer.new()
 	stamps.columns = 2
 	stamps.add_theme_constant_override("h_separation", 6)
@@ -345,8 +352,12 @@ func _effects_label(rule: Dictionary) -> String:
 func _metric(heading: String, value: String) -> VBoxContainer:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 1)
-	col.add_child(_label(heading, 14, Color("#f5e3d7")))
-	col.add_child(_label(value, 22, Color.WHITE, true))
+	var name := _label(heading, 14, Color("#f5e3d7"))
+	name.autowrap_mode = TextServer.AUTOWRAP_OFF
+	col.add_child(name)
+	var amount := _label(value, 22, Color.WHITE, true)
+	amount.autowrap_mode = TextServer.AUTOWRAP_OFF
+	col.add_child(amount)
 	return col
 
 func _label(message: String, size: int, color: Color, bold: bool = false) -> Label:
