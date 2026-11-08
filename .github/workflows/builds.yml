@@ -2,8 +2,16 @@ name: Build Windows and Linux prototypes
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'assets/**'
+      - 'scripts/**'
+      - 'scenes/**'
+      - 'project.godot'
+      - 'export_presets.cfg'
+      - '.github/workflows/builds.yml'
   push:
-    branches: [prototype-build]
+    branches: [prototype-build, main]
 
 permissions:
   contents: read
