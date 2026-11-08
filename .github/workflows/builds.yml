@@ -2,6 +2,14 @@ name: Build Windows and Linux prototypes
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'assets/**'
+      - 'scripts/**'
+      - 'scenes/**'
+      - 'project.godot'
+      - 'export_presets.cfg'
+      - '.github/workflows/builds.yml'
   push:
     branches: [prototype-build, main]
 
@@ -28,6 +36,8 @@ jobs:
         run: godot --headless --path . --editor --quit
       - name: Check game engine
         run: godot --headless --path . --script res://tests/smoke.gd
+      - name: Illustrations and screen identity
+        run: godot --headless --path . --script res://tests/art_smoke.gd
       - name: Layout at Steam Deck resolution
         run: godot --headless --path . --script res://tests/ui_smoke.gd
       - name: Real-engine balance regression

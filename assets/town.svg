@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="270" viewBox="0 25 780 270">
+<defs>
+ <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b3c6b0"/><stop offset=".63" stop-color="#e4d8b2"/><stop offset="1" stop-color="#eecda1"/></linearGradient>
+ <linearGradient id="road" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#e4ba86"/><stop offset="1" stop-color="#c5a374"/></linearGradient>
+ <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#8da487"/><stop offset="1" stop-color="#668873"/></linearGradient>
+ <pattern id="bricks" patternUnits="userSpaceOnUse" width="40" height="24"><path d="M0 12 H40 M20 0 V12 M0 12 V24 M40 12 V24" fill="none" stroke="#a86b5a" stroke-opacity=".22" stroke-width="2"/></pattern>
+</defs>
+<rect width="780" height="328" fill="url(#sky)"/>
+<circle cx="593" cy="61" r="39" fill="#f7e8bc" opacity=".9"/>
+<g fill="#f8edce" opacity=".8"><path d="M40 76 q26-40 63-11 q26-20 55 13 Z"/><path d="M492 89 q31-34 64-2 q25-22 54 8 Z"/><path d="M320 50 q18-25 43-4 q20-17 43 10 Z"/></g>
+<path d="M0 190 Q80 151 164 178 T355 181 T581 175 T780 176 V328 H0Z" fill="url(#hill)"/>
+<g fill="#466755" opacity=".76"><ellipse cx="44" cy="181" rx="18" ry="39"/><ellipse cx="82" cy="178" rx="22" ry="51"/><ellipse cx="720" cy="185" rx="28" ry="52"/><ellipse cx="761" cy="193" rx="17" ry="38"/></g>
+<!-- cobblestone road -->
+<path d="M0 269 Q222 227 402 253 T780 251 V328H0Z" fill="url(#road)" stroke="#b58c65" stroke-width="4"/>
+<g fill="none" stroke="#f5ddb0" stroke-width="3" opacity=".8"><path d="M0 286 Q255 252 480 291 T780 277"/><path d="M0 313 Q255 283 480 322"/><path d="M127 263l-7 19 M254 249l-15 28 M390 266l-9 24 M555 263l-2 27 M682 272l-10 26"/></g>
+<!-- bakery left -->
+<path d="M5 117 L107 70 L219 120 L217 266 L5 266Z" fill="#bd7569" stroke="#514e4a" stroke-width="6" stroke-linejoin="round"/>
+<path d="M-10 117 L108 55 L231 119 L221 133 L107 78 L0 132Z" fill="#654b50" stroke="#4b4440" stroke-width="5"/>
+<path d="M17 150H198V248H17Z" fill="#e8cfaa" stroke="#554a45" stroke-width="5"/>
+<path d="M17 150H198V182H17Z" fill="#b56c58"/>
+<path d="M17 150l27 30 30-30 30 30 30-30 30 30 31-30" fill="none" stroke="#efddbc" stroke-width="17"/>
+<path d="M49 189h52v59H49zM122 189h53v59h-53z" fill="#779d98" stroke="#5c4c43" stroke-width="6"/>
+<g stroke="#ead8aa" stroke-width="4"><path d="M75 190v57M49 216h50M147 190v57M124 218h50"/></g>
+<rect x="76" y="112" width="77" height="29" rx="3" fill="#f2dbac" stroke="#514642" stroke-width="4"/><text x="114" y="132" fill="#61494b" text-anchor="middle" font-family="Georgia,serif" font-size="16" font-weight="bold">BAKERY</text>
+<!-- clock tower / city hall -->
+<path d="M276 101 L400 66 L529 99 V263H276Z" fill="#e3c69c" stroke="#5a4e48" stroke-width="6"/>
+<rect x="283" y="105" width="239" height="158" fill="url(#bricks)"/>
+<path d="M260 106 L400 48 L544 107 L540 122 L400 68 L264 124Z" fill="#566b68" stroke="#514944" stroke-width="5"/>
+<rect x="365" y="15" width="70" height="80" fill="#e1c39b" stroke="#554c49" stroke-width="5"/>
+<path d="M355 24l45-24 45 24Z" fill="#785654" stroke="#554c49" stroke-width="5"/>
+<circle cx="400" cy="53" r="25" fill="#fff2d6" stroke="#755d4f" stroke-width="5"/><path d="M400 53V37 M400 53l12 7" stroke="#665750" stroke-width="4" stroke-linecap="round"/>
+<g fill="#74958b" stroke="#5d4a43" stroke-width="5"><path d="M304 137h42v49h-42z"/><path d="M456 137h42v49h-42z"/></g>
+<path d="M362 264v-62a38 38 0 0 1 76 0v62" fill="#80665c" stroke="#594a43" stroke-width="6"/><path d="M401 203v61" stroke="#d5b893" stroke-width="4"/>
+<path d="M384 24h33" stroke="#9b795b" stroke-width="4"/>
+<rect x="338" y="119" width="124" height="27" rx="2" fill="#70484b"/><text x="400" y="137" fill="#f9ebcf" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="bold">TOWN HALL</text>
+<!-- post office right -->
+<path d="M571 139 L660 97 L755 140V264H571Z" fill="#a4ae9a" stroke="#56534c" stroke-width="6"/>
+<path d="M560 139L660 87 768 142l-8 14-100-47-92 45z" fill="#795954" stroke="#554945" stroke-width="5"/>
+<rect x="587" y="163" width="73" height="67" fill="#f3e4bd" stroke="#635447" stroke-width="5"/>
+<rect x="680" y="163" width="52" height="67" fill="#f3e4bd" stroke="#635447" stroke-width="5"/>
+<path d="M587 175h74M679 175h54" stroke="#b76f5d" stroke-width="9"/>
+<path d="M682 245h51v18h-51Z" fill="#704d49"/>
+<rect x="602" y="126" width="116" height="23" fill="#f4e5c8" stroke="#605049" stroke-width="3"/><text x="660" y="143" text-anchor="middle" font-family="Georgia,serif" font-size="13" fill="#59484b">POST OFFICE</text>
+<!-- bunting across the village -->
+<path d="M108 69Q363 153 684 81" fill="none" stroke="#66554e" stroke-width="2"/><path d="M198 104l11 26 14-20Z" fill="#b87467"/><path d="M263 121l11 25 14-20Z" fill="#dfc07a"/><path d="M542 118l10 26 16-24Z" fill="#7c9d91"/><path d="M604 102l11 27 14-27Z" fill="#b87467"/>
+<!-- little town trees and inhabitants -->
+<g stroke="#594e43" stroke-width="5" stroke-linejoin="round"><path d="M237 244v31 M558 246v30"/><circle cx="237" cy="232" r="24" fill="#6d997b"/><circle cx="558" cy="232" r="22" fill="#6d997b"/></g>
+<g stroke="#584c47" stroke-width="4"><circle cx="278" cy="251" r="9" fill="#d7b992"/><path d="M278 259l-7 20 18 0Z" fill="#8a625c"/><circle cx="525" cy="252" r="9" fill="#dbb991"/><path d="M525 261l-10 23h21Z" fill="#697f7b"/></g>
+<!-- gerald the goose -->
+<g stroke="#544941" stroke-linejoin="round" stroke-linecap="round"><path d="M364 280q-25-7-43-24q-29-2-37 17q-9 26 20 30l65 2q24-5 24-20l-8-4z" fill="#fff6dd" stroke-width="5"/><path d="M366 277q-16-35-5-53q9-17 24-4q11 10 2 27l-6 30z" fill="#fff7e4" stroke-width="5"/><path d="M390 229l20 9-23 10z" fill="#d28e4d" stroke-width="4"/><circle cx="381" cy="230" r="3.5" fill="#333b3c" stroke="none"/><path d="M337 270l15 23" stroke="#51816e" stroke-width="9"/><path d="M317 303v11 M359 303v11" fill="none" stroke="#bc8b4b" stroke-width="4"/><path d="M291 275l-12-9M289 282l-15-3" stroke="#f8ebcf" stroke-width="5"/></g>
+<!-- street lamps -->
+<g stroke="#554d49" stroke-width="5" fill="none"><path d="M246 265v-86M246 185q0-17 16-17"/><path d="M545 272v-88M545 184q-1-17-16-17"/></g>
+<g fill="#f8e5a4" stroke="#65574c" stroke-width="4"><path d="M259 169l-9-4v-17h22v18l-9 3Z"/><path d="M528 168l-10-5v-17h21v19l-11 3Z"/></g>
+<path d="M0 0H780V328H0Z" stroke="#6b6250" stroke-width="7" fill="none"/>
+</svg>

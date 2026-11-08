@@ -1,4 +1,5 @@
 extends SceneTree
+const Simulation = preload("res://scripts/simulation/case_simulation.gd")
 ## Verify playable layout at the 1280x800 Steam Deck target.
 
 var failures: Array[String] = []
@@ -14,6 +15,8 @@ func _check(ok: bool, message: String) -> void:
 func _exercise() -> void:
     var scene: Control = load("res://scenes/main.tscn").instantiate()
     root.add_child(scene)
+    scene.sim = Simulation.new(4242, false)
+    scene._render()
     await process_frame
     await process_frame
     _assert_visible(scene, ["X  APPROVE", "Y  ADVANCE DAY"], ["THE OFFICIAL CHRONICLE"])
