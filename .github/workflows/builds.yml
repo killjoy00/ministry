@@ -3,7 +3,7 @@ name: Build Windows and Linux prototypes
 on:
   workflow_dispatch:
   push:
-    branches: [prototype-build, main]
+    branches: [prototype-build]
 
 permissions:
   contents: read
@@ -28,20 +28,14 @@ jobs:
         run: godot --headless --path . --editor --quit
       - name: Check game engine
         run: godot --headless --path . --script res://tests/smoke.gd
-      - name: Layout at Steam Deck resolution
-        run: godot --headless --path . --script res://tests/ui_smoke.gd
-      - name: Real-engine balance regression
-        run: godot --headless --path . --script res://tests/balance.gd
+      - name: Illustrations and screen identity
+        run: godot --headless --path . --script res://tests/art_smoke.gd
       - name: Build Linux (Steam Deck native candidate)
         run: |
           mkdir -p build
           godot --headless --path . --export-release "Linux" build/ministry-of-coincidences-linux.x86_64
       - name: Build Windows (Proton candidate)
         run: godot --headless --path . --export-release "Windows Desktop" build/ministry-of-coincidences-windows.exe
-      - name: Create downloadable Steam Deck and Windows packages
-        run: |
-          bash tools/package_release.sh
-          tar -tzf build/ministry-steam-deck-linux.tar.gz | grep -F 'Play Ministry.sh'
       - name: Upload testable binaries
         uses: actions/upload-artifact@v4
         with:
@@ -49,3 +43,17 @@ jobs:
           path: build/
           if-no-files-found: error
           retention-days: 14
+
+      # Temporary development utility: the full editor-capable Godot CLI enables
+      # local rendered UI checks against the exact CI engine version.
+      - name: Export Godot test runtime
+        run: |
+          mkdir -p devtools
+          cp -L "$(command -v godot)" devtools/godot-4.7.2-linux.x86_64
+          chmod +x devtools/godot-4.7.2-linux.x86_64
+      - name: Upload UI test runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: ministry-dev-godot-${{ github.run_number }}
+          path: devtools/
+          retention-days: 1

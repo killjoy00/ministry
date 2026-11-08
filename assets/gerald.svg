@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+<defs><radialGradient id="p" cx=".5" cy=".37" r=".75"><stop stop-color="#ffeec5"/><stop offset="1" stop-color="#d5b583"/></radialGradient></defs>
+<circle cx="150" cy="150" r="143" fill="#ead7af" stroke="#a27a4d" stroke-width="9"/>
+<circle cx="150" cy="150" r="129" fill="url(#p)" stroke="#fff5d8" stroke-width="4"/>
+<g fill="none" stroke="#5f7863" stroke-width="8" stroke-linecap="round"><path d="M72 216q-48-53-9-125M85 233Q30 177 46 124M231 220q42-61 7-130M215 237q53-50 47-112"/></g>
+<g fill="#739277"><ellipse cx="65" cy="116" rx="9" ry="20" transform="rotate(-35 65 116)"/><ellipse cx="53" cy="150" rx="9" ry="20" transform="rotate(-45 53 150)"/><ellipse cx="242" cy="110" rx="9" ry="20" transform="rotate(35 242 110)"/><ellipse cx="251" cy="155" rx="9" ry="20" transform="rotate(45 251 155)"/></g>
+<g stroke="#5e5148" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+<path d="M70 248q5-91 83-88q85-4 86 90" fill="#f9f2dc"/>
+<path d="M143 215q-24-39-19-89q-4-54 22-65q33-13 43 22q6 26-13 51l4 79Z" fill="#fffaf0"/>
+<path d="M185 103q14-11 24-5q12 13-15 21l-18 8" fill="#d69b51"/>
+<circle cx="177" cy="91" r="5.5" fill="#36474a" stroke="none"/>
+<path d="M170 77l12-4" fill="none" stroke="#64564f" stroke-width="3"/>
+<path d="M155 168q16 7 38 47l-15 32q-16-28-46-45" fill="#4d846c" stroke="#34574d" stroke-width="4"/>
+<path d="M120 167q-30 5-45 41q39-3 71-27" fill="#f2e6ce"/>
+<path d="M114 55l13-13 13 13 14-13 12 19-27 12z" fill="#c79853" stroke="#8f6944" stroke-width="4"/>
+<circle cx="138" cy="57" r="4" fill="#aa6d59" stroke="none"/>
+</g>
+<path d="M45 239q105 32 207 0l-8 23q-91 41-191 0Z" fill="#7b4a48" stroke="#573c3c" stroke-width="4"/>
+<text x="150" y="258" text-anchor="middle" font-size="23" font-family="Georgia,serif" font-weight="bold" fill="#f7e4c0">GERALD</text>
+</svg>
