@@ -1,4 +1,5 @@
 extends SceneTree
+const Simulation = preload("res://scripts/simulation/case_simulation.gd")
 ## The Ministry must ship with its illustrations, not a bare controls-only UI.
 var checked: int = 0
 var failures: Array[String] = []
@@ -18,7 +19,7 @@ func _run() -> void:
         _check(load(path) is Texture2D, "original illustration must import as a texture: " + name)
     var scene: Control = load("res://scenes/main.tscn").instantiate()
     root.add_child(scene)
-    scene.sim.start_new_run(4242)
+    scene.sim = Simulation.new(4242, false)
     scene._render()
     await process_frame
     await process_frame
