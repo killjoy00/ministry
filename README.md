@@ -6,7 +6,7 @@ A Steam Deck-first, offline, turn-based incremental roguelite about arranging im
 
 ## Status
 
-**Pre-alpha prototype**. One playable case: **A Fowl Election**. The game is not yet released and is not certified or tested on Steam Deck hardware. This repository starter contains source, a full design doc, Godot headless smoke tests, and on-demand export workflows. See [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) and [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
+**Illustrated playtest pre-alpha**. One complete vertical-slice case: **A Fowl Election**. The game is not yet released and is not certified or tested on Steam Deck hardware. This repository starter contains source, a full design doc, Godot headless smoke tests, and on-demand export workflows. See [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) and [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
 
 ## Run
 
@@ -41,6 +41,12 @@ Run `python3 tests/validate_catalog.py` for an additional offline catalog/balanc
 
 No paid services, online accounts, telemetry, or backend required.
 
-## Art direction
+## Download a playable test build
 
-The playable interface is designed as a hand-illustrated mid-century Ministry case file, with original SVG art of Oddford and Gerald, illustrated event icons and individual stamp seals. The design guide is [docs/ART_DIRECTION.md](docs/ART_DIRECTION.md).
+Open [GitHub Actions](https://github.com/killjoy00/ministry/actions/workflows/builds.yml), choose the latest successful **Build Windows and Linux prototypes** run, and download its artifact. Inside, use **ministry-steam-deck-linux.tar.gz** for Steam Deck, or keep **ministry-of-coincidences-windows.exe** and **ministry-of-coincidences-windows.pck** together for Windows. Some runs also include **ministry-windows.zip**; if present, extract that instead.
+
+See [Steam Deck and Windows playtesting instructions](docs/PLAYTEST.md). These are offline test builds, not an officially Steam Deck Verified release. The GitHub workflow creates fresh binaries from each tested revision.
+
+## Illustrated art direction
+
+The prototype now includes original vector illustrations of the town of Oddford and Gerald, a Ministry seal, four distinct bureaucratic stamps, incident illustrations, and a case-file-inspired controller UI. See [the art direction document](docs/ART_DIRECTION.md). This is the first art pass, not the finished animated town simulation.

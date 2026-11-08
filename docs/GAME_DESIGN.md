@@ -166,7 +166,7 @@ Never accept an event graph that is *technically* connected but narratively arbi
 
 ## 14. Open questions (defer until after prototype)
 
-- Illustrated town and Gerald imagery are core to the prototype, not optional polish. Keep controller-first case cards, but show the miniature town and distinct stamps at all times. Animate town consequences after mechanic validation. See `docs/ART_DIRECTION.md`.
+- Illustrated town and Gerald imagery are core to the playable prototype. Keep controller-first case cards while displaying the miniature town and distinct stamps. Animate causal events in the town after validating the mechanics. See `docs/ART_DIRECTION.md`.
 - How much additional hidden information improves replayability without eroding fairness?
 - Final victory thresholds and session length must be tuned from instrumented seed simulations.
 - Pricing, release date, trailer, store page, and monetization are deliberately out of scope.
