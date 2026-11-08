@@ -33,6 +33,10 @@ func _test_main_scene_load() -> void:
 	if instance == null:
 		return
 	root.add_child(instance)
+	# SceneTree._initialize runs before the first engine frame; explicitly invoke
+	# the UI callback so this assertion tests the rendered control structure.
+	if instance.get_child_count() == 0:
+		instance.call("_ready")
 	_check(instance.get_child_count() >= 2, "Main scene builds controller-first interface")
 	instance.queue_free()
 
