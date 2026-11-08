@@ -41,3 +41,17 @@ jobs:
           path: build/
           if-no-files-found: error
           retention-days: 14
+
+      # Temporary development utility for visual validation of the actual
+      # Godot build, separate from the user-facing game binaries.
+      - name: Export editor-capable Godot test runner
+        run: |
+          mkdir -p devtools
+          cp -L "$(command -v godot)" devtools/godot-4.7.2-linux.x86_64
+          chmod +x devtools/godot-4.7.2-linux.x86_64
+      - name: Upload UI test runner
+        uses: actions/upload-artifact@v4
+        with:
+          name: ministry-dev-godot-${{ github.run_number }}
+          path: devtools/
+          retention-days: 1
