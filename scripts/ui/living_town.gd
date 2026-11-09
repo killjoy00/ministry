@@ -7,6 +7,9 @@ signal close_requested
 signal investigate_requested(event_id: String)
 
 const FX = preload("res://scripts/ui/town_fx.gd")
+const Choreography = preload("res://scripts/ui/character_choreography.gd")
+const PaperActor = preload("res://scripts/ui/paper_actor.gd")
+const VISUAL_SETTINGS = "user://ministry_visuals.cfg"
 const PAPER := Color("#f1e2c4")
 const BURGUNDY := Color("#7e454c")
 const INK := Color("#263b40")
@@ -30,6 +33,11 @@ var reduced_motion: bool = false
 var selected_location: String = "Town Hall"
 var image_frame: TextureRect
 var effect_layer: Control
+var puppet_layer: Control
+var _actor_tweens: Array[Tween] = []
+var _actors: Dictionary = {}
+var causal_label: Label
+var motion_button: Button
 var marker: ColorRect
 var location_buttons: Array[Button] = []
 var docket_title: Label
@@ -54,6 +62,7 @@ func _ready() -> void:
 	name = "LivingOddford"
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_load_motion_preference()
 	_build()
 	if replay_mode:
 		_show_replay()
@@ -79,6 +88,9 @@ func _input(event: InputEvent) -> void:
 			JOY_BUTTON_Y:
 				_skip_replay()
 				get_viewport().set_input_as_handled()
+			JOY_BUTTON_X:
+				_toggle_reduced_motion()
+				get_viewport().set_input_as_handled()
 	elif event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_ESCAPE:
@@ -96,6 +108,9 @@ func _input(event: InputEvent) -> void:
 				if replay_mode:
 					_skip_replay()
 					get_viewport().set_input_as_handled()
+			KEY_R:
+				_toggle_reduced_motion()
+				get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
 	if not replay_mode or replay_paused:
@@ -165,6 +180,26 @@ func _build() -> void:
 	effect_layer.position = MAP_ORIGIN
 	effect_layer.size = MAP_SIZE
 	add_child(effect_layer)
+	puppet_layer = Control.new()
+	puppet_layer.name = "OfficialPaperActors"
+	puppet_layer.position = MAP_ORIGIN
+	puppet_layer.size = MAP_SIZE
+	puppet_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(puppet_layer)
+	var causal_backdrop := ColorRect.new()
+	causal_backdrop.name = "DocumentedCausesBackdrop"
+	causal_backdrop.color = Color("#30464ae8")
+	causal_backdrop.position = MAP_ORIGIN + Vector2(13, 11)
+	causal_backdrop.size = Vector2(432, 36)
+	causal_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	causal_backdrop.visible = false
+	add_child(causal_backdrop)
+	causal_label = _label("", 17, Color("#fff0c3"), true)
+	causal_label.name = "RecordedCausalLinksLabel"
+	causal_label.position = MAP_ORIGIN + Vector2(22, 15)
+	causal_label.size = Vector2(418, 32)
+	causal_label.visible = false
+	add_child(causal_label)
 	marker = ColorRect.new()
 	marker.name = "CausalSpotlight"
 	marker.color = Color("#fff3bd88")
@@ -181,8 +216,10 @@ func _build() -> void:
 		location_btn.position = _marker_position(place) - Vector2(67, 17)
 		location_btn.pressed.connect(_show_location.bind(place))
 		add_child(location_btn)
+		# Hide location markers only during replay, so characters are not obscured.
+		location_btn.visible = not replay_mode
 		location_buttons.append(location_btn)
-	var strip := _label("A INSPECT LOCATION     ·     LB/RB REPORT STEPS     ·     Y SKIP     ·     B RETURN", 17, INK)
+	var strip := _label("A INSPECT   ·   LB/RB EVENTS   ·   Y SKIP   ·   X MOTION   ·   B RETURN", 17, INK)
 	strip.position = Vector2(56, 628)
 	strip.size = Vector2(1100, 37)
 	add_child(strip)
@@ -233,6 +270,13 @@ func _build() -> void:
 	proceed_button.size = Vector2(280, 59)
 	proceed_button.pressed.connect(_next_event)
 	add_child(proceed_button)
+	motion_button = _button("", false)
+	motion_button.name = "ReducedMotionToggle"
+	motion_button.position = Vector2(54, 688)
+	motion_button.size = Vector2(263, 52)
+	motion_button.pressed.connect(_toggle_reduced_motion)
+	add_child(motion_button)
+	_update_motion_caption()
 	_focus_target = location_buttons[0]
 	_effect("", false)
 
@@ -277,6 +321,7 @@ func _show_location(place: String) -> void:
 	investigate_button.disabled = _selected_eligible_id.is_empty()
 	proceed_button.text = "RETURN TO CASE" if not replay_mode else "NEXT RECORDED EVENT  >"
 	_effect("", false)
+	_stage_idle_cast()
 
 func _show_replay() -> void:
 	replay_elapsed = 0.0
@@ -291,6 +336,7 @@ func _show_replay() -> void:
 		investigate_button.disabled = true
 		proceed_button.text = "B  RETURN TO CASE"
 		_effect("", false)
+		_clear_cast()
 		return
 	var entry: Dictionary = replay_events[replay_index]
 	var event_id: String = str(entry.get("id", ""))
@@ -317,10 +363,109 @@ func _show_replay() -> void:
 	investigate_button.disabled = true
 	proceed_button.text = "NEXT EVENT   RB  >" if replay_index + 1 < replay_events.size() else "END OF REPORT  /  B RETURN"
 	_effect(family, true)
+	_stage_recorded_event(entry, place, causes)
 
 func _effect(family: String, animate: bool) -> void:
 	(effect_layer as Node).call("set_incident", family if animate else "")
 	(effect_layer as Node).set("reduced_motion", reduced_motion)
+	if not animate:
+		(effect_layer as Node).call("set_causal_links", [], Vector2.ZERO)
+		causal_label.visible = false
+		get_node("DocumentedCausesBackdrop").visible = false
+
+# Only the actual event ledger triggers a scene. Artwork never mutates game state.
+func _stage_recorded_event(entry: Dictionary, place: String, causes: Array) -> void:
+	var event_id: String = str(entry.get("id", ""))
+	var actors: Array[Dictionary] = Choreography.actors_for(event_id, place)
+	_stage_cast(actors)
+	var source_points: Array[Vector2] = []
+	for parent_id in causes:
+		var source_rule: Dictionary = simulation.get_rule(str(parent_id)) if simulation != null else {}
+		var source_place: String = str(source_rule.get("place", ""))
+		var index: int = LOCATION_NAMES.find(source_place)
+		if index >= 0:
+			source_points.append(Vector2(MAP_SIZE.x * COORDS[index].x, MAP_SIZE.y * COORDS[index].y))
+	var current_index: int = LOCATION_NAMES.find(place)
+	var current_point := Vector2(MAP_SIZE.x * 0.5, MAP_SIZE.y * 0.5)
+	if current_index >= 0:
+		current_point = Vector2(MAP_SIZE.x * COORDS[current_index].x, MAP_SIZE.y * COORDS[current_index].y)
+	(effect_layer as Node).call("set_causal_links", source_points, current_point)
+	causal_label.visible = not source_points.is_empty()
+	get_node("DocumentedCausesBackdrop").visible = causal_label.visible
+	causal_label.text = "DOCUMENTED CAUSES: %d   /   +%d SUPPORT" % [source_points.size(), int(entry.get("support", 0))]
+	var gain: int = int(entry.get("support", 0))
+	if gain > 0 and not reduced_motion:
+		var gain_label := _label("+%d SUPPORT" % gain, 23, Color("#ffe9aa"), true)
+		gain_label.name = "RecordedSupportGain"
+		gain_label.position = current_point - Vector2(68, 95)
+		gain_label.size = Vector2(205, 34)
+		gain_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		puppet_layer.add_child(gain_label)
+		var tween := create_tween()
+		_actor_tweens.append(tween)
+		tween.tween_interval(0.55)
+		tween.tween_property(gain_label, "position", gain_label.position - Vector2(0, 27), 0.90).set_trans(Tween.TRANS_CUBIC)
+		tween.parallel().tween_property(gain_label, "modulate:a", 0.0, 0.90)
+
+func _stage_idle_cast() -> void:
+	var roles := ["gerald", "clerk", "mayor", "baker", "reporter", "organizer"]
+	var specs: Array[Dictionary] = []
+	for role in roles:
+		var point: Vector2 = Choreography.HOME[role]
+		specs.append({"role": role, "from": point, "to": point, "delay": 0.0, "duration": 0.1, "mood": ""})
+	_stage_cast(specs, false)
+
+func _clear_cast() -> void:
+	for tween in _actor_tweens:
+		if tween != null and tween.is_running():
+			tween.kill()
+	_actor_tweens.clear()
+	_actors.clear()
+	if puppet_layer == null: return
+	for child in puppet_layer.get_children():
+		puppet_layer.remove_child(child)
+		child.queue_free()
+
+func _stage_cast(specs: Array[Dictionary], move: bool = true) -> void:
+	_clear_cast()
+	for spec in specs:
+		var role: String = str(spec["role"])
+		var actor := PaperActor.new()
+		actor.configure(role, reduced_motion)
+		puppet_layer.add_child(actor)
+		actor.position = Vector2(MAP_SIZE.x * spec["from"].x, MAP_SIZE.y * spec["from"].y)
+		_actors[role] = actor
+		var destination := Vector2(MAP_SIZE.x * spec["to"].x, MAP_SIZE.y * spec["to"].y)
+		if reduced_motion or not move:
+			actor.position = destination
+			actor.set_action(str(spec.get("mood", "")))
+		else:
+			var tween := create_tween()
+			_actor_tweens.append(tween)
+			tween.tween_interval(float(spec["delay"]))
+			tween.tween_callback(actor.set_walking.bind(true))
+			tween.tween_property(actor, "position", destination, float(spec["duration"])).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			tween.tween_callback(actor.set_walking.bind(false))
+			tween.tween_callback(actor.set_action.bind(str(spec.get("mood", ""))))
+
+func _update_motion_caption() -> void:
+	if motion_button != null:
+		motion_button.text = "X  MOTION: %s  /  R" % ("REDUCED" if reduced_motion else "ON")
+
+func _toggle_reduced_motion() -> void:
+	reduced_motion = not reduced_motion
+	var preferences := ConfigFile.new()
+	preferences.set_value("accessibility", "reduced_motion", reduced_motion)
+	preferences.save(VISUAL_SETTINGS)
+	_update_motion_caption()
+	(effect_layer as Node).set("reduced_motion", reduced_motion)
+	if replay_mode: _show_replay()
+	else: _stage_idle_cast()
+
+func _load_motion_preference() -> void:
+	var preferences := ConfigFile.new()
+	if preferences.load(VISUAL_SETTINGS) == OK:
+		reduced_motion = bool(preferences.get_value("accessibility", "reduced_motion", false))
 
 func _next_event() -> void:
 	if not replay_mode:
