@@ -2,6 +2,7 @@ extends Control
 ## Card-first UI optimized for 1280x800 and controller-only navigation.
 
 const SimulationEngine = preload("res://scripts/simulation/case_simulation.gd")
+const LivingTown = preload("res://scripts/ui/living_town.gd")
 const INK = Color("#273c41")
 const MUTED = Color("#6c6a60")
 const PAPER = Color("#f1e2c4")
@@ -51,6 +52,9 @@ func _input(event: InputEvent) -> void:
 			JOY_BUTTON_B:
 				_clear_stamp()
 				get_viewport().set_input_as_handled()
+			JOY_BUTTON_START:
+				_toggle_music()
+				get_viewport().set_input_as_handled()
 	elif event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_Q:
@@ -67,6 +71,15 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			KEY_ESCAPE:
 				_clear_stamp()
+				get_viewport().set_input_as_handled()
+			KEY_M:
+				_toggle_music()
+				get_viewport().set_input_as_handled()
+			KEY_MINUS:
+				_adjust_music(-0.10)
+				get_viewport().set_input_as_handled()
+			KEY_EQUAL:
+				_adjust_music(0.10)
 				get_viewport().set_input_as_handled()
 
 func _cycle_stamp(direction: int) -> void:
@@ -95,9 +108,23 @@ func _approve_stamp() -> void:
 		selected_event = str(focused.get_meta("event_id"))
 	if sim.stage_stamp(selected_stamp, selected_event):
 		feedback = "Approval queued. It will be filed when you advance the day."
+		var director := get_node_or_null("/root/MusicDirector")
+		if director != null:
+			director.call("play_stamp_effect")
 	else:
 		feedback = "The application was denied. Check Influence and stamp eligibility."
 	_render()
+	if feedback.begins_with("Approval queued"):
+		_animate_stamp_press()
+
+func _animate_stamp_press() -> void:
+	var icon := find_child("StampDeskIcon", true, false) as TextureRect
+	if icon == null or not is_inside_tree():
+		return
+	icon.pivot_offset = icon.size / 2.0
+	var tween := create_tween()
+	tween.tween_property(icon, "scale", Vector2(1.20, 0.68), 0.09).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_property(icon, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK)
 
 func _clear_stamp() -> void:
 	if sim.status != "active":
@@ -109,9 +136,48 @@ func _clear_stamp() -> void:
 func _advance_day() -> void:
 	if sim.status != "active":
 		return
+	var previous_count: int = sim.history.size()
 	sim.advance_day()
+	var recorded: Array = []
+	for item in sim.history.slice(previous_count):
+		var event_id: String = str(item.get("id", ""))
+		# Administrative notes remain in the chronicle but are not represented
+		# as physical incidents that supposedly occurred in Oddford.
+		if not sim.get_rule(event_id).is_empty() or event_id.begins_with("correction_"):
+			recorded.append(item)
 	feedback = "The daily register has been updated."
 	_render()
+	# Replays are entirely sourced from this day's actual simulation ledger.
+	# They never alter the game state, chances, rewards or available stamps.
+	_open_town_report(recorded)
+
+func _toggle_music() -> void:
+	var director := get_node_or_null("/root/MusicDirector")
+	if director == null:
+		return
+	director.call("set_music_enabled", not bool(director.get("music_enabled")))
+	feedback = "Office music %s." % ("enabled" if bool(director.get("music_enabled")) else "muted")
+	_render()
+
+func _adjust_music(delta: float) -> void:
+	var director := get_node_or_null("/root/MusicDirector")
+	if director == null:
+		return
+	director.call("set_music_volume", float(director.get("music_volume")) + delta)
+	feedback = "Music volume: %d%%." % roundi(float(director.get("music_volume")) * 100.0)
+	_render()
+
+func _open_town_report(records: Array) -> void:
+	_close_gallery()
+	gallery_overlay = LivingTown.new()
+	gallery_overlay.configure(sim, records, true)
+	gallery_overlay.close_requested.connect(_close_gallery)
+	gallery_overlay.investigate_requested.connect(_investigate_from_town)
+	add_child(gallery_overlay)
+
+func _investigate_from_town(event_id: String) -> void:
+	_close_gallery()
+	_select_event(event_id)
 
 func _buy_upgrade(kind: String) -> void:
 	if sim.buy_upgrade(kind):
@@ -333,7 +399,9 @@ func _stamp_desk(parent: HBoxContainer) -> void:
 	var heading := HBoxContainer.new()
 	heading.add_theme_constant_override("separation", 8)
 	outer.add_child(heading)
-	heading.add_child(_illustration("res://assets/illustrated/stamp_%s_small.webp" % selected_stamp, Vector2(44, 40)))
+	var stamp_icon := _illustration("res://assets/illustrated/stamp_%s_small.webp" % selected_stamp, Vector2(44, 40))
+	stamp_icon.name = "StampDeskIcon"
+	heading.add_child(stamp_icon)
 	var desk_title := _label("THE STAMP DESK", 23, INK, true)
 	desk_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	heading.add_child(desk_title)
@@ -451,6 +519,13 @@ func _result_screen() -> void:
 func _open_gallery(which: String) -> void:
 	if gallery_overlay != null:
 		_close_gallery()
+	if which == "town":
+		gallery_overlay = LivingTown.new()
+		gallery_overlay.configure(sim, [], false)
+		gallery_overlay.close_requested.connect(_close_gallery)
+		gallery_overlay.investigate_requested.connect(_investigate_from_town)
+		add_child(gallery_overlay)
+		return
 	gallery_overlay = ColorRect.new()
 	gallery_overlay.name = "IllustratedGallery"
 	gallery_overlay.color = Color("#162c31ee")
@@ -553,8 +628,25 @@ func _footer() -> void:
 	var note := _label("NOTHING HAPPENS BY ACCIDENT.    |    CASE SEED: %d" % sim.seed, 14, Color("#dbd2b3"))
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(note)
+	var director := get_node_or_null("/root/MusicDirector")
+	if director != null:
+		var enabled: bool = bool(director.get("music_enabled"))
+		var sound := _button("♪ ON" if enabled else "♪ OFF", true)
+		sound.name = "MusicToggle"
+		sound.custom_minimum_size = Vector2(83, 30)
+		sound.add_theme_font_size_override("font_size", 14)
+		sound.pressed.connect(_toggle_music)
+		row.add_child(sound)
+		for config in [["−", -0.10], ["+", 0.10]]:
+			var volume := _button(str(config[0]), false)
+			volume.name = "MusicVolumeDown" if float(config[1]) < 0 else "MusicVolumeUp"
+			volume.custom_minimum_size = Vector2(35, 30)
+			volume.add_theme_font_size_override("font_size", 17)
+			volume.tooltip_text = "Decrease music volume" if float(config[1]) < 0 else "Increase music volume"
+			volume.pressed.connect(_adjust_music.bind(float(config[1])))
+			row.add_child(volume)
 	var status := _label(feedback, 14, Color("#f2d6a3"))
-	status.custom_minimum_size.x = 300
+	status.custom_minimum_size.x = 245
 	status.clip_text = true
 	status.autowrap_mode = TextServer.AUTOWRAP_OFF
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT

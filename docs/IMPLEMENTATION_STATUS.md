@@ -23,3 +23,7 @@ The game is a completed **playable first-case build**, not a complete commercial
 ## New illustrated assets / Steam publishing preparation — November 8, 2026
 
 The generated portraits, Oddford wide scene, event cards and stamp icons are incorporated into the Godot UI as local assets. The player may open the town panorama or six-person cast register without a mouse; B closes the scene. A new Godot art regression covers texture imports, modals and a complete seven-day case. The gameplay engine, progression rules and no-backend design are unchanged. `docs/STEAM_RELEASE_GUIDE.md` documents Steam Direct signup, AI disclosure, SteamPipe builds, reviews and Steam Deck acceptance. The first case is playable, not a commercially complete game; physical Deck testing and additional content are still needed.
+
+## Living Oddford and audio — November 9, 2026
+
+Interactive six-location illustrated town, inspection-driven navigation into real pending events, a skippable day-by-day causal replay of logged simulation events, event-dependent paper-and-ink animation, rubber-stamp sound and an original procedural waltz with persisted music settings. Added `tests/living_town_smoke.gd` and CI gates. These present the simulation visually but do not change its odds or results. Actual Steam Deck audio/gamepad/suspend validation remains open.

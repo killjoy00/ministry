@@ -44,6 +44,8 @@ jobs:
         run: godot --headless --path . --script res://tests/ui_smoke.gd
       - name: Real-engine balance regression
         run: godot --headless --path . --script res://tests/balance.gd
+      - name: Living Oddford and original audio
+        run: godot --headless --path . --script res://tests/living_town_smoke.gd
       - name: Build Linux (Steam Deck native candidate)
         run: |
           mkdir -p build

@@ -54,3 +54,7 @@ The prototype now includes original vector illustrations of the town of Oddford 
 ## Illustrated town, people and stamps (November 2026)
 
 This build includes the six-person Oddford cast, a painted town panorama, six scenario-event illustrations and four illustrated rubber stamps, all packaged as offline WebP textures under `assets/illustrated/`. Case scenes, choice cards, stamp controls and results now use the illustrated assets. **VIEW ODDFORD** and **MEET THE TOWN** open controller-accessible scenes (B/Escape returns). The AI-assisted images were generated before shipping, not at runtime. See [`docs/ART_DIRECTION.md`](docs/ART_DIRECTION.md) and the [Steam publishing checklist](docs/STEAM_RELEASE_GUIDE.md).
+
+## Living Oddford and original music
+
+The illustrated town is now interactive: inspect six locations, jump directly to eligible incidents, and watch a skippable, causally faithful replay of each day's recorded events. The stamp has tactile animation and synthesized sound. An original offline 16-bar waltz plays with music mute and volume controls (Start / M, and footer). See [living town and sound notes](docs/LIVING_TOWN_AND_SOUND.md).
