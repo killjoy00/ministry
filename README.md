@@ -6,7 +6,7 @@ A Steam Deck-first, offline, turn-based incremental roguelite about arranging im
 
 ## Status
 
-**Illustrated playtest pre-alpha**. One complete vertical-slice case: **A Fowl Election**. The game is not yet released and is not certified or tested on Steam Deck hardware. This repository starter contains source, a full design doc, Godot headless smoke tests, and on-demand export workflows. See [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) and [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
+**Pre-alpha prototype**. One playable case: **A Fowl Election**. The game is not yet released and is not certified or tested on Steam Deck hardware. This repository starter contains source, a full design doc, Godot headless smoke tests, and on-demand export workflows. See [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) and [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
 
 ## Run
 
@@ -41,20 +41,12 @@ Run `python3 tests/validate_catalog.py` for an additional offline catalog/balanc
 
 No paid services, online accounts, telemetry, or backend required.
 
-## Download a playable test build
+## Art direction
 
-Open [GitHub Actions](https://github.com/killjoy00/ministry/actions/workflows/builds.yml), choose the latest successful **Build Windows and Linux prototypes** run, and download its artifact. Inside, use **ministry-steam-deck-linux.tar.gz** for Steam Deck, or keep **ministry-of-coincidences-windows.exe** and **ministry-of-coincidences-windows.pck** together for Windows. Some runs also include **ministry-windows.zip**; if present, extract that instead.
+The playable interface is designed as a hand-illustrated mid-century Ministry case file, with original SVG art of Oddford and Gerald, illustrated event icons and individual stamp seals. The design guide is [docs/ART_DIRECTION.md](docs/ART_DIRECTION.md).
 
-See [Steam Deck and Windows playtesting instructions](docs/PLAYTEST.md). These are offline test builds, not an officially Steam Deck Verified release. The GitHub workflow creates fresh binaries from each tested revision.
+## Incremental game progression (v0.3)
 
-## Illustrated art direction
+The Ministry now has **12 unlockable operational departments** purchased with Civil Service Merit after a case. Choose a 2–5 office loadout in the controller-navigable organization chart. Offices change **actual causality**—misrouted letters, synchronized appointments, parallel outcomes, free knock-on consequences, second stamped approvals, appeals, revised reality corrections, and automatically filed event chains. They do not simply raise damage or income percentages. Everything is seeded, offline and saved, including migration of original save files.
 
-The prototype now includes original vector illustrations of the town of Oddford and Gerald, a Ministry seal, four distinct bureaucratic stamps, incident illustrations, and a case-file-inspired controller UI. See [the art direction document](docs/ART_DIRECTION.md). This is the first art pass, not the finished animated town simulation.
-
-## Illustrated town, people and stamps (November 2026)
-
-This build includes the six-person Oddford cast, a painted town panorama, six scenario-event illustrations and four illustrated rubber stamps, all packaged as offline WebP textures under `assets/illustrated/`. Case scenes, choice cards, stamp controls and results now use the illustrated assets. **VIEW ODDFORD** and **MEET THE TOWN** open controller-accessible scenes (B/Escape returns). The AI-assisted images were generated before shipping, not at runtime. See [`docs/ART_DIRECTION.md`](docs/ART_DIRECTION.md) and the [Steam publishing checklist](docs/STEAM_RELEASE_GUIDE.md).
-
-## Living Oddford and original music
-
-The illustrated town is now interactive: inspect six locations, jump directly to eligible incidents, and watch a skippable, causally faithful replay of each day's recorded events. The stamp has tactile animation and synthesized sound. An original offline 16-bar waltz plays with music mute and volume controls (Start / M, and footer). See [living town and sound notes](docs/LIVING_TOWN_AND_SOUND.md).
+[Read the department roster, costs and combination examples](docs/DEPARTMENTS_AND_PROGRESSION.md). This milestone enriches the first-case experience; future cases still need to grow in difficulty and variety.

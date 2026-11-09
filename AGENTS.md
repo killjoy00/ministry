@@ -23,3 +23,9 @@ This is a **Steam Deck-first** offline Godot game. The authoritative requirement
 - Add an in-game "why" causal tree and better branch-choice previews.
 - Playtest 3–5 minutes per run; validate whether players deliberately start another case.
 - Only then add 2 new cases based on the shared rule engine.
+
+## Department progression gates (November 2026)
+
+The twelve department IDs, costs and prerequisites live in `scripts/simulation/department_catalog.gd`; their event-system effects are in `scripts/simulation/case_simulation.gd`. Keep `docs/DEPARTMENTS_AND_PROGRESSION.md` in sync with every change. Do not implement new departments as passive numeric bonuses; every office must change factual outcomes, eligibility, intervention capacity, scheduling, or autonomous causal chain resolution. Preserve 2–5 case-snapshotted loadout slots, no mid-case purchases/assignment, two shared free approvals/day, and lossless v1 save migration.
+
+Run the department simulation, UI and 250-seed balance tests on PRs and build jobs. Compare unstaffed/fully staffed behavior, causal provenance and bounded resolution. The game is still not Deck Verified.

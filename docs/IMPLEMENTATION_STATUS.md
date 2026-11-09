@@ -1,29 +1,42 @@
-# Implementation and verification status — 2026-11-08
+# Implementation status — first local source milestone
 
-## Playable vertical slice implemented
+## Available in this starter
 
-Godot 4.7.2 project with a seven-day *A Fowl Election* case; 28 connected causal rules; Nudge, Misfile, Reschedule and Domino Permit stamps; staged approvals; reality strain/corrections; seeded deterministic outcomes and provenance chronicle; offline save/restore; Merit and three upgrades; controller-first interface.
+- Complete living game design document and explicit test plan.
+- Godot 4.7.2 project and case interface in a controller-first parchment-and-ink theme.
+- A Fowl Election scenario with 28 composable rules, 29 possible facts, six locations and eight named residents.
+- Seven-day cycle with two spontaneous incident attempts per day; event chains trigger only from newly created causal facts.
+- Nudge, Misfile, Reschedule, and Domino Permit interventions, each with costs and a distinct rule.
+- Consequence trace in a readable official chronicle.
+- Reality Strain, scheduled and telegraphed corrections, and opportunities from corrected events.
+- Success and loss resolution, Civil Service Merit and three permanent upgrades.
+- Seeded randomness and local autosave/restore.
+- GitHub Actions configuration for headless smoke tests on PRs; on-demand Linux x86_64 and Windows release exports (`prototype-build` branch or manual dispatch).
 
-The original headless suite passed 280 assertions. The actual Godot 4.7.2 engine was also run against 500 uninfluenced seeds (68 wins) and 500 targeted Nudge seeds (466 wins). UI checks were exercised at 1280x800 and a seven-day keyboard-driven Linux desktop run reached its result and Merit screen. The header, case counters, chronicle, first-event focus and footer were adjusted after rendered visual inspection.
+## Validation completed in this environment
 
-## Automated CI and distribution
+- Catalog shape, uniqueness and prerequisite reachability: **passed**.
+- 1,000-seed approximate Python balance checks: **passed**; showed why natural event attempts must be limited per day. This model is deliberately NOT a substitute for running the actual Godot engine.
+- Manual source structure checks: completed; project currently lacks local Godot runtime.
 
-- Godot import and headless simulation smoke suite
-- Actual-engine 500-seed balance regression
-- 1280x800 UI controls/layout regression on starting, result and restarted case
-- Linux x86_64 and Windows exports
-- Steam Deck-friendly tar.gz with executable permission and launcher, plus Windows zip when Python is present
+## Still unverified / not done
 
-## Remaining before a public Steam launch
+- Actual Godot 4.7.2 parse / scene run, headless GDScript test execution, and exported Windows/Linux binaries (Godot binary unavailable locally).
+- Actual Steam Deck hardware and suspend/resume test.
+- Controller focus and visual layout measurements on hardware.
+- Multiple assignments, full rank progression, animated town, sound, polished artwork, Steam integration.
+- GitHub commit: no dedicated repository exists yet; GitHub connector currently cannot create repositories.
 
-No Steam Deck hardware, sleep/resume or performance test has been performed. No Steamworks integration, audio/graphics polish, multiple assignments, larger incremental tiers or external playtesting yet. Do not claim Valve Deck Verified status.
+## Immediate next action once `killjoy00/ministry-of-coincidences` exists
 
-The game is a completed **playable first-case build**, not a complete commercial game.
+1. Push all source files and docs into that separate repository.
+2. Run CI `Godot prototype checks`. Resolve any parser or runtime failures before claiming playable.
+3. Trigger `Build Windows and Linux prototypes` to produce downloadable binaries.
+4. Run the Linux candidate on Steam Deck; audit focus/navigation and text legibility.
+5. Conduct first five short playtests, refine the engine, and only then expand content.
 
-## New illustrated assets / Steam publishing preparation — November 8, 2026
+## The real incremental progression — November 9, 2026
 
-The generated portraits, Oddford wide scene, event cards and stamp icons are incorporated into the Godot UI as local assets. The player may open the town panorama or six-person cast register without a mouse; B closes the scene. A new Godot art regression covers texture imports, modals and a complete seven-day case. The gameplay engine, progression rules and no-backend design are unchanged. `docs/STEAM_RELEASE_GUIDE.md` documents Steam Direct signup, AI disclosure, SteamPipe builds, reviews and Steam Deck acceptance. The first case is playable, not a commercially complete game; physical Deck testing and additional content are still needed.
+Twelve departments now run through a deterministic, data-driven catalog and a controller-accessible Ministry organization chart. Licenses are permanent purchases using Civil Service Merit, require past cases, and can be staffed in combinations (2–5 slots). They change real event outcomes and cause chains; the Chronicle records all department activations. The player's active roster is snapshotted per case, and existing v1 saves are migrated to v2 with currency and traditional upgrades intact.
 
-## Living Oddford and audio — November 9, 2026
-
-Interactive six-location illustrated town, inspection-driven navigation into real pending events, a skippable day-by-day causal replay of logged simulation events, event-dependent paper-and-ink animation, rubber-stamp sound and an original procedural waltz with persisted music settings. Added `tests/living_town_smoke.gd` and CI gates. These present the simulation visually but do not change its odds or results. Actual Steam Deck audio/gamepad/suspend validation remains open.
+Preliminary local checks: 104 department mechanic/migration assertions, 14 UI/purchase/navigation checks, and 250 seeded unassisted comparisons, with finite histories and factual parent IDs. The late-case automation combination wins 128/250 cases even with no stamp interventions; it is deliberately powerful and **will require harder follow-up assignments** to maintain engagement. The unstaffed first case remains unchanged. This milestone is incremental infrastructure, not proof of long-term playtest retention. `docs/DEPARTMENTS_AND_PROGRESSION.md` is the authoritative feature guide.

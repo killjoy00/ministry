@@ -33,3 +33,9 @@ jobs:
         run: godot --headless --path . --script res://tests/living_town_smoke.gd
       - name: Recorded character choreography and reduced motion
         run: godot --headless --path . --script res://tests/character_animation_smoke.gd
+      - name: Permanent department unlocks and true causal powers
+        run: godot --headless --path . --script res://tests/departments_smoke.gd
+      - name: 1280x800 department office board
+        run: godot --headless --path . --script res://tests/departments_ui_smoke.gd
+      - name: Department balance and provenance regression
+        run: godot --headless --path . --script res://tests/department_balance.gd

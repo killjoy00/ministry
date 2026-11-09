@@ -3,6 +3,7 @@ extends Control
 
 const SimulationEngine = preload("res://scripts/simulation/case_simulation.gd")
 const LivingTown = preload("res://scripts/ui/living_town.gd")
+const MinistryBoard = preload("res://scripts/ui/ministry_board.gd")
 const INK = Color("#273c41")
 const MUTED = Color("#6c6a60")
 const PAPER = Color("#f1e2c4")
@@ -107,7 +108,7 @@ func _approve_stamp() -> void:
 	if focused != null and focused.has_meta("event_id"):
 		selected_event = str(focused.get_meta("event_id"))
 	if sim.stage_stamp(selected_stamp, selected_event):
-		feedback = "Approval queued. It will be filed when you advance the day."
+		feedback = "Approval queued. %s" % ("Two stamps may be filed today." if sim.has_department("double_booking") else "The paperwork will be processed next day.")
 		var director := get_node_or_null("/root/MusicDirector")
 		if director != null:
 			director.call("play_stamp_effect")
@@ -178,6 +179,14 @@ func _open_town_report(records: Array) -> void:
 func _investigate_from_town(event_id: String) -> void:
 	_close_gallery()
 	_select_event(event_id)
+
+func _open_ministry() -> void:
+	if gallery_overlay != null:
+		_close_gallery()
+	gallery_overlay = MinistryBoard.new()
+	gallery_overlay.configure(sim)
+	gallery_overlay.close_requested.connect(_close_gallery)
+	add_child(gallery_overlay)
 
 func _buy_upgrade(kind: String) -> void:
 	if sim.buy_upgrade(kind):
@@ -320,6 +329,13 @@ func _case_file() -> void:
 	cast_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cast_button.pressed.connect(_open_gallery.bind("cast"))
 	doors.add_child(cast_button)
+	var department_button := _button("THE MINISTRY")
+	department_button.name = "OpenMinistryBoard"
+	department_button.custom_minimum_size.y = 31
+	department_button.add_theme_font_size_override("font_size", 13)
+	department_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	department_button.pressed.connect(_open_ministry)
+	doors.add_child(department_button)
 
 func _event_tray(parent: HBoxContainer) -> void:
 	var panel := _card(CARD, BORDER)
@@ -407,6 +423,8 @@ func _stamp_desk(parent: HBoxContainer) -> void:
 	heading.add_child(desk_title)
 	var active_stamp: Dictionary = SimulationEngine.STAMPS[selected_stamp]
 	outer.add_child(_label("LB/RB SEALS   /   %s: %d INFLUENCE, +%d STRAIN" % [str(active_stamp["name"]).to_upper(), active_stamp["cost"], active_stamp["strain"]], 14, MUTED))
+	if sim.has_department("double_booking"):
+		outer.add_child(_label("DOUBLE BOOKING: TWO APPROVALS PER DAY", 14, GREEN, true))
 	var desk_scroll := ScrollContainer.new()
 	desk_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	desk_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -452,6 +470,8 @@ func _stamp_desk(parent: HBoxContainer) -> void:
 	var pending_text := "NO INTERVENTION FILED"
 	if not sim.pending.is_empty():
 		pending_text = "FILED: " + str(SimulationEngine.STAMPS[sim.pending["stamp"]]["name"]).to_upper()
+	if not sim.second_pending.is_empty():
+		pending_text += " + " + str(SimulationEngine.STAMPS[sim.second_pending["stamp"]]["name"]).to_upper()
 	desk.add_child(_label(pending_text, 15, GREEN, true))
 	desk.add_child(_label("LEDGER: " + sim.forecast(), 15, BURGUNDY))
 	var actions := HBoxContainer.new()
@@ -467,7 +487,7 @@ func _stamp_desk(parent: HBoxContainer) -> void:
 	var clear := _button("B  CLEAR")
 	clear.custom_minimum_size.x = 120
 	clear.autowrap_mode = TextServer.AUTOWRAP_OFF
-	clear.disabled = sim.pending.is_empty()
+	clear.disabled = sim.pending.is_empty() and sim.second_pending.is_empty()
 	clear.pressed.connect(_clear_stamp)
 	actions.add_child(clear)
 	var advance := _button("Y  ADVANCE DAY", false, true)
@@ -508,6 +528,14 @@ func _result_screen() -> void:
 		upgrades.add_child(upgrade)
 		if initial_focus == null and not upgrade.disabled:
 			initial_focus = upgrade
+	var ministry_button := _button("REORGANIZE THE MINISTRY   /   %d OF 12 DEPARTMENTS UNLOCKED" % sim.owned_department_count(), false, false)
+	ministry_button.name = "OpenMinistryBoard"
+	ministry_button.custom_minimum_size.y = 50
+	ministry_button.add_theme_font_size_override("font_size", 17)
+	ministry_button.pressed.connect(_open_ministry)
+	content.add_child(ministry_button)
+	if initial_focus == null:
+		initial_focus = ministry_button
 	var new_case := _button("FILE ANOTHER CASE", false, true)
 	new_case.custom_minimum_size.y = 64
 	new_case.pressed.connect(_new_case)
@@ -587,9 +615,12 @@ func _open_gallery(which: String) -> void:
 func _close_gallery() -> void:
 	if gallery_overlay == null:
 		return
+	var closed_ministry: bool = gallery_overlay is MinistryBoard
 	gallery_overlay.queue_free()
 	gallery_overlay = null
-	if is_instance_valid(initial_focus) and initial_focus.is_inside_tree():
+	if closed_ministry:
+		_render()  # Refresh Merit, equipment status and access buttons.
+	elif is_instance_valid(initial_focus) and initial_focus.is_inside_tree():
 		initial_focus.grab_focus()
 
 func _chronicle() -> void:

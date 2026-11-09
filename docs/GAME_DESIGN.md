@@ -166,7 +166,7 @@ Never accept an event graph that is *technically* connected but narratively arbi
 
 ## 14. Open questions (defer until after prototype)
 
-- Illustrated town and Gerald imagery are core to the playable prototype. Keep controller-first case cards while displaying the miniature town and distinct stamps. Animate causal events in the town after validating the mechanics. See `docs/ART_DIRECTION.md`.
+- Illustrated town and Gerald imagery are core to the prototype, not optional polish. Keep controller-first case cards, but show the miniature town and distinct stamps at all times. Animate town consequences after mechanic validation. See `docs/ART_DIRECTION.md`.
 - How much additional hidden information improves replayability without eroding fairness?
 - Final victory thresholds and session length must be tuned from instrumented seed simulations.
 - Pricing, release date, trailer, store page, and monetization are deliberately out of scope.
@@ -174,3 +174,9 @@ Never accept an event graph that is *technically* connected but narratively arbi
 ## 15. Current implementation status
 
 This document is a *target*, not proof of release readiness. The initial prototype implements the core loop only. Linux/Windows exports and actual Steam Deck testing remain unverified until built and run in the target environment.
+
+## 16. Operational departments — implemented in v0.3
+
+Twelve permanent Merit-purchased **causal departments** now exist, each affecting the real event engine. Departments can redirect facts, guarantee legitimate consequences, synchronize events, authorize a second paid stamp, rebook same-place incidents, produce parallel facts, propagate public gossip, branch Reality Corrections, guarantee failed attempts, and automate multi-prerequisite chains. Not simple percentage bonuses.
+
+Each case equips a small loadout (2 initially, up to 5 as the Ministry expands); purchase and assignment happen between cases. See [`DEPARTMENTS_AND_PROGRESSION.md`](DEPARTMENTS_AND_PROGRESSION.md) for the costs, rank ladder, detailed effects, bounded automation and next content challenges. Save v2 loads save v1 without wiping any previous Merit or upgrades.
