@@ -45,6 +45,10 @@ static func rules() -> Array:
 	r.append(_event("endorsement", "A Surprising Endorsement", "The baker endorses Gerald as the only candidate with a sincere interest in bread.", 0.58, ["goose_candidate"], ["goose_at_hall", "goose_prize"], ["goose_endorsed"], 2, "Bakery"))
 	r.append(_event("scandal", "The Mayor's Remarks Are Quoted Accurately", "Huxley's improvisation becomes the least popular speech in local history.", 0.58, ["mayor_embarrassed"], [], ["mayor_scandal"], 1, "Town Hall"))
 	r.append(_event("poll", "Pollsters Spot an Upset", "An opinion poll reveals a troubling number of people prefer the goose.", 0.72, ["goose_candidate"], ["goose_debate", "goose_viral", "mayor_scandal"], ["goose_poll"], 2, "Post Office"))
+	# Only reachable when a department actually creates public gossip / interest.
+	# Their source facts point to the real incident, not an invented storyline.
+	r.append(_event("gossip_column", "An Officially Embarrassing Column", "The Gazette prints an awkwardly accurate civic anecdote.", 0.68, ["public_gossip"], [], ["gossip_column"], 1, "High Street"))
+	r.append(_event("rumour_circulates", "A Rumour With a Filing Number", "An unverified public-interest notice circulates with surprising efficiency.", 0.78, ["public_interest"], [], ["rumour_spread"], 2, "Post Office"))
 	return r
 
 static func _event(id: String, title: String, text: String, probability: float, all_facts: Array, any_facts: Array, output_facts: Array, support: int, place: String, misfile_facts: Array = [], misfile_support: int = 0, misfile_text: String = "") -> Dictionary:
