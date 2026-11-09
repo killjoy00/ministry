@@ -31,3 +31,5 @@ jobs:
         run: godot --headless --path . --script res://tests/balance.gd
       - name: Living Oddford and original audio
         run: godot --headless --path . --script res://tests/living_town_smoke.gd
+      - name: Recorded character choreography and reduced motion
+        run: godot --headless --path . --script res://tests/character_animation_smoke.gd

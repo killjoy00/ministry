@@ -5,6 +5,17 @@ extends Control
 var kind: String = ""
 var elapsed: float = 0.0
 var reduced_motion: bool = false
+# Only the simulation's logged parent IDs authorize a direct-cause arrow.
+var causal_origins: Array[Vector2] = []
+var causal_target: Vector2 = Vector2.ZERO
+
+func set_causal_links(origins: Array, target: Vector2) -> void:
+	causal_origins.clear()
+	for origin in origins:
+		if origin is Vector2:
+			causal_origins.append(origin)
+	causal_target = target
+	queue_redraw()
 
 func set_incident(new_kind: String) -> void:
 	kind = new_kind
@@ -20,6 +31,9 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 func _draw() -> void:
+	if not causal_origins.is_empty():
+		for source in causal_origins:
+			_draw_causal_arrow(source, causal_target)
 	if kind.is_empty():
 		return
 	var w: float = size.x
@@ -63,3 +77,21 @@ func _draw() -> void:
 				var y: float = fposmod(float(i * 41) + elapsed * (35.0 + (i % 5) * 14.0), h)
 				var color: Color = Color("#9b4d55") if i % 3 == 0 else (Color("#f4d58d") if i % 3 == 1 else Color("#fff3d8"))
 				draw_rect(Rect2(x, y, 7, 12), color)
+
+func _draw_causal_arrow(source: Vector2, target: Vector2) -> void:
+	# A curved, dotted brass link from a real causal parent to the event location.
+	if source.distance_to(target) < 12.0:
+		draw_arc(target + Vector2(0, -18), 15.0, 0.0, TAU * 0.8, 24, Color("#fff2b7"), 3.0, true)
+		return
+	var mid: Vector2 = (source + target) * 0.5 + Vector2(0, -45.0)
+	var previous: Vector2 = source
+	var point: Vector2 = source
+	for i in range(1, 28):
+		var t: float = float(i) / 27.0
+		point = source * pow(1.0 - t, 2) + mid * (2.0 * t * (1.0 - t)) + target * (t * t)
+		if i % 3 != 0:
+			draw_line(previous, point, Color("#ffe8ac"), 3.0, true)
+		previous = point
+	var normal: Vector2 = (point - mid).normalized()
+	draw_line(point, point + normal.rotated(2.55) * 13.0, Color("#ffe8ac"), 3.0, true)
+	draw_line(point, point + normal.rotated(-2.55) * 13.0, Color("#ffe8ac"), 3.0, true)
