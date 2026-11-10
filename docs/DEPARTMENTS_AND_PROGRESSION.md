@@ -42,14 +42,14 @@ Departments are **permanent licenses bought with Civil Service Merit after a cas
 
 - `department_catalog.gd` is the **only source** for department IDs, names, costs and case prerequisites. `case_simulation.gd` supplies the functional rules, with no hidden backend.
 - `profile.departments` stores owned offices, `profile.equipped` stores the next-case loadout, and `run_departments` is the immutable roster for the current case.
-- `SAVE_VERSION=2` accepts **v1 saves**, retaining all existing Merit, cases, Desk, Ink and Audit progress. Existing cases resume with no departments until the next run.
+- `SAVE_VERSION=3` accepts **v1 and v2 saves**, retaining all existing Merit, cases, Desk, Ink and Audit progress. Existing cases resume with no departments until the next run.
 - The engine resolves a maximum of 32 physical incidents a day. Per-day department triggers are capped and the random number generator remains seeded.
 - Automatic effects are **not staged as player purchases** and cannot subtract more Influence than available. Real auto effects and their source facts are recorded, and rule-derived cause IDs refer only to actual source events.
 - For pre-release, see `tests/departments_smoke.gd`, `tests/departments_ui_smoke.gd`, and `tests/department_balance.gd`.
 
 ## Balance observations, November 2026
 
-On 250 fixed seeds with **no player interventions**, the original unstaffed case won 26 times (10.4%), with 11.9 physical incidents per run. An intentionally powerful five-office automation loadout won 128 (51.2%), with 19.5 incidents and 6.4 recorded office actions per run, but did not win every case. These are **simulation outcomes, not human win rates**. The later-game case catalog will require tougher objectives as the Ministry becomes stronger. We should tune department costs and combinations based on real playtesting, not force all offices to be equally strong.
+On 250 fixed seeds with **no player interventions**, the original unstaffed case won 26 times (10.4%), with 11.9 physical incidents per run. An intentionally powerful five-office automation loadout won 128 (51.2%), with 19.5 incidents and 6.4 recorded office actions per run, but did not win every case. These are **simulation outcomes, not human win rates**. The four-case catalog now includes harder requirements and fewer natural opportunities; see `docs/ASSIGNMENTS_AND_DIFFICULTY.md` for tested strategy results. We should tune department costs and combinations based on real playtesting, not force all offices to be equally strong.
 
 ## Next content milestone
 

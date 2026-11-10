@@ -54,6 +54,12 @@ jobs:
         run: godot --headless --path . --script res://tests/departments_ui_smoke.gd
       - name: Department balance and provenance regression
         run: godot --headless --path . --script res://tests/department_balance.gd
+      - name: Escalating assignment contracts and legacy save migration
+        run: godot --headless --path . --script res://tests/assignments_smoke.gd
+      - name: Case selection, controller focus and 1280x800 goals
+        run: godot --headless --path . --script res://tests/assignments_ui_smoke.gd
+      - name: Seeded difficulty progression and department value
+        run: godot --headless --path . --script res://tests/assignments_balance.gd
       - name: Build Linux (Steam Deck native candidate)
         run: |
           mkdir -p build

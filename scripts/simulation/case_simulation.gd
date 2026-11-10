@@ -2,10 +2,10 @@ extends RefCounted
 class_name CaseSimulation
 ## UI-independent, seeded rules simulation. All outcomes and provenance are journaled.
 
-const Scenario = preload("res://scripts/scenarios/fowl_election.gd")
+const Cases = preload("res://scripts/scenarios/case_catalog.gd")
 const Departments = preload("res://scripts/simulation/department_catalog.gd")
 const SAVE_PATH = "user://ministry_case_save.json"
-const SAVE_VERSION = 2
+const SAVE_VERSION = 3
 const STAMPS = {
 	"nudge": {"name": "Nudge", "cost": 2, "strain": 2, "description": "+55% chance today"},
 	"misfile": {"name": "Misfile", "cost": 3, "strain": 3, "description": "+40% chance; redirect outcome"},
@@ -24,8 +24,9 @@ var save_path: String = SAVE_PATH
 var rng := RandomNumberGenerator.new()
 var seed: int = 0
 var rules: Array = []
+var case_id: String = "fowl"
 var case_info: Dictionary = {}
-var profile: Dictionary = {"merit": 0, "completed": 0, "desk": 0, "ink": 0, "audit": 0, "departments": {}, "equipped": []}
+var profile: Dictionary = {"merit": 0, "completed": 0, "desk": 0, "ink": 0, "audit": 0, "departments": {}, "equipped": [], "case_wins": {}}
 var day: int = 1
 var status: String = "active"
 var facts: Dictionary = {}
@@ -47,8 +48,8 @@ func _init(custom_seed: int = -1, enable_persistence: bool = true, custom_save_p
 	persist = enable_persistence
 	if not custom_save_path.is_empty():
 		save_path = custom_save_path
-	rules = Scenario.rules()
-	case_info = Scenario.description()
+	rules = Cases.rules(case_id)
+	case_info = Cases.description(case_id)
 	if persist and custom_seed < 0 and load_game():
 		return
 	start_new_run(custom_seed)
@@ -110,6 +111,29 @@ func rank_title() -> String:
 	if owned >= 2: return "SENIOR COINCIDENCE OFFICER"
 	return "JUNIOR CLERK"
 
+# Later assignments are unlocked by cases filed, including older save files.
+# The selection is locked at run start, alongside the department loadout.
+func case_unlocked(id: String) -> bool:
+	if not Cases.is_known(id):
+		return false
+	return int(profile.get("completed", 0)) >= int(Cases.description(id)["unlock_cases"])
+
+func case_objectives_met() -> bool:
+	if support < int(case_info["required_support"]):
+		return false
+	for fact_id in case_info["win_facts"]:
+		if not has_fact(str(fact_id)):
+			return false
+	return true
+
+func case_objective_progress() -> Array:
+	var progress: Array = []
+	var requirements: Array = case_info["win_facts"]
+	var labels: Array = case_info["requirement_labels"]
+	for index in range(requirements.size()):
+		progress.append({"label": str(labels[index]), "done": has_fact(str(requirements[index]))})
+	return progress
+
 func _department_note(id: String, message: String) -> void:
 	_note("DEPARTMENT / " + str(Departments.get_department(id)["name"]).to_upper(), message, "", [])
 
@@ -119,7 +143,15 @@ func maximum_influence() -> int:
 func starting_influence() -> int:
 	return min(maximum_influence(), 4 + int(profile.get("ink", 0)))
 
-func start_new_run(requested_seed: int = -1) -> void:
+func start_new_run(requested_seed: int = -1, requested_case_id: String = "") -> bool:
+	if not requested_case_id.is_empty():
+		if not case_unlocked(requested_case_id):
+			return false
+		case_id = requested_case_id
+	if not Cases.is_known(case_id):
+		case_id = "fowl"
+	rules = Cases.rules(case_id)
+	case_info = Cases.description(case_id)
 	if requested_seed >= 0:
 		seed = requested_seed
 	else:
@@ -146,14 +178,11 @@ func start_new_run(requested_seed: int = -1) -> void:
 	corrections = []
 	reward_paid = false
 	last_outcome = ""
-	# Seed-dependent flavor, without concealing or blocking any required route.
-	var descriptions = [
-		"Mayor Huxley enjoys speeches. Gerald enjoys sandwiches.",
-		"The Gazette has mislaid its fact-checking department.",
-		"The town's election committee is unusually open-minded."
-	]
-	_note("CASE OPENED", descriptions[rng.randi_range(0, descriptions.size() - 1)], "", [])
+	# Each assignment has its own bureaucracy, but the same deterministic RNG.
+	var notes: Array = case_info["open_notes"]
+	_note("CASE OPENED: " + str(case_info["title"]), str(notes[rng.randi_range(0, notes.size() - 1)]), "", [])
 	save_game()
+	return true
 
 func has_fact(fact_id: String) -> bool:
 	return bool(facts.get(fact_id, false))
@@ -275,16 +304,16 @@ func advance_day() -> void:
 	var correction_facts: Array = _resolve_corrections()
 	_resolve_events(interventions, correction_facts)
 	if day >= int(case_info["deadline"]):
-		if has_fact("goose_candidate") and support >= int(case_info["required_support"]):
+		if case_objectives_met():
 			status = "won"
-			last_outcome = "Gerald is elected. The town has questions; the Ministry does not."
+			last_outcome = str(case_info["success"])
 		else:
 			status = "lost"
-			last_outcome = "The election concludes without a goose in office. Paperwork will follow."
+			last_outcome = str(case_info["failure"])
 		_settle_case()
 	else:
 		day += 1
-		influence = min(maximum_influence(), influence + 2)
+		influence = min(maximum_influence(), influence + int(case_info.get("regen", 2)))
 	save_game()
 
 func _resolve_corrections() -> Array:
@@ -355,14 +384,14 @@ func _resolve_events(interventions: Array, correction_facts: Array) -> void:
 		var id: String = str(rule["id"])
 		if not queued.has(id) and not (scheduled.has(id) and int(scheduled[id]) > day):
 			spontaneous.append(id)
-	for draw in range(mini(2, spontaneous.size())):
+	for draw in range(mini(int(case_info.get("spontaneous_per_day", 2)), spontaneous.size())):
 		var index: int = rng.randi_range(0, spontaneous.size() - 1)
 		var pick: String = str(spontaneous[index])
 		spontaneous.remove_at(index)
 		queue.append({"id": pick, "force": false})
 		queued[pick] = true
 
-	while not queue.is_empty() and event_count < 32:
+	while not queue.is_empty() and event_count < int(case_info.get("daily_event_limit", 32)):
 		var next: Dictionary = queue.pop_front()
 		var id: String = str(next["id"])
 		var rule := get_rule(id)
@@ -538,7 +567,10 @@ func _settle_case() -> void:
 	reward_paid = true
 	var merit: int = 2 + int(support / 3)
 	if status == "won":
-		merit += 7
+		merit += 7 + int(case_info.get("merit_bonus", 0))
+		var case_wins: Dictionary = profile.get("case_wins", {})
+		case_wins[case_id] = int(case_wins.get(case_id, 0)) + 1
+		profile["case_wins"] = case_wins
 	profile["merit"] = int(profile.get("merit", 0)) + merit
 	profile["completed"] = int(profile.get("completed", 0)) + 1
 	_note("CASE " + ("CLOSED" if status == "won" else "FILED AS INCOMPLETE"), "%s Civil Service Merit awarded. %s" % [merit, last_outcome], "", [])
@@ -567,7 +599,7 @@ func save_game() -> void:
 	if not persist:
 		return
 	var data := {
-		"version": SAVE_VERSION, "seed": str(seed), "rng_state": str(rng.state),
+		"version": SAVE_VERSION, "case_id": case_id, "seed": str(seed), "rng_state": str(rng.state),
 		"day": day, "status": status, "facts": facts, "fact_sources": fact_sources,
 		"fired": fired, "history": history, "support": support, "influence": influence,
 		"strain": strain, "pending": pending, "second_pending": second_pending,
@@ -587,8 +619,13 @@ func load_game() -> bool:
 	if not (parsed is Dictionary):
 		return false
 	var version: int = int(parsed.get("version", -1))
-	if version != 1 and version != SAVE_VERSION:
+	if not [1, 2, SAVE_VERSION].has(version):
 		return false
+	case_id = str(parsed.get("case_id", "fowl"))
+	if not Cases.is_known(case_id):
+		case_id = "fowl"
+	rules = Cases.rules(case_id)
+	case_info = Cases.description(case_id)
 	seed = int(parsed.get("seed", "0"))
 	rng.seed = seed
 	rng.state = int(parsed.get("rng_state", str(rng.state)))
@@ -606,7 +643,11 @@ func load_game() -> bool:
 	scheduled = parsed.get("scheduled", {})
 	corrections = parsed.get("corrections", [])
 	var old_profile: Dictionary = parsed.get("profile", {})
-	profile = {"merit": int(old_profile.get("merit", 0)), "completed": int(old_profile.get("completed", 0)), "desk": int(old_profile.get("desk", 0)), "ink": int(old_profile.get("ink", 0)), "audit": int(old_profile.get("audit", 0)), "departments": {}, "equipped": []}
+	profile = {"merit": int(old_profile.get("merit", 0)), "completed": int(old_profile.get("completed", 0)), "desk": int(old_profile.get("desk", 0)), "ink": int(old_profile.get("ink", 0)), "audit": int(old_profile.get("audit", 0)), "departments": {}, "equipped": [], "case_wins": {}}
+	var wins: Dictionary = old_profile.get("case_wins", {})
+	for id in Cases.ORDER:
+		if int(wins.get(id, 0)) > 0:
+			(profile["case_wins"] as Dictionary)[id] = int(wins[id])
 	var licenses: Dictionary = old_profile.get("departments", {})
 	for id in Departments.ORDER:
 		if bool(licenses.get(id, false)):

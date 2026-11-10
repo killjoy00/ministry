@@ -1,5 +1,5 @@
 # THE MINISTRY OF COINCIDENCES
-## Game design document (living) — v0.1, 2026-11-07
+## Game design document (living) — v0.4, 2026-11-09
 
 > **Nothing happens by accident. Especially accidents.**
 
@@ -180,3 +180,7 @@ This document is a *target*, not proof of release readiness. The initial prototy
 Twelve permanent Merit-purchased **causal departments** now exist, each affecting the real event engine. Departments can redirect facts, guarantee legitimate consequences, synchronize events, authorize a second paid stamp, rebook same-place incidents, produce parallel facts, propagate public gossip, branch Reality Corrections, guarantee failed attempts, and automate multi-prerequisite chains. Not simple percentage bonuses.
 
 Each case equips a small loadout (2 initially, up to 5 as the Ministry expands); purchase and assignment happen between cases. See [`DEPARTMENTS_AND_PROGRESSION.md`](DEPARTMENTS_AND_PROGRESSION.md) for the costs, rank ladder, detailed effects, bounded automation and next content challenges. Save v2 loads save v1 without wiping any previous Merit or upgrades.
+
+## 16. Delivered escalation: the case desk
+
+The engine now supports four selectable assignments with distinct fact-based win conditions, not merely higher victory thresholds. The post-election progression includes The Bakery That Bought the Bank, Thursday Has Been Cancelled and The World's Unlikeliest Apology. Unlock milestones are based on filed cases, with higher Merit rewards for the advanced challenges and scenario-specific natural-event/Influence limits. See `docs/ASSIGNMENTS_AND_DIFFICULTY.md` for authored rules, example solutions and balance evidence.

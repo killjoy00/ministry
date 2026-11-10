@@ -28,3 +28,7 @@
 Run `godot --headless --path . --script res://tests/departments_smoke.gd`, `.../tests/departments_ui_smoke.gd`, and `.../tests/department_balance.gd` in CI and before building. Check all 12 offices, rank thresholds, caps on active offices, explicit Merit costs, old save compatibility, unchanged seeded baseline, procedural activation of each unique mechanic, real provenance (no phantom source events), and bounded automation (maximum two free guaranteed incidents/day; maximum 32 fired rules/day).
 
 The Steam Deck board must show all 12 department cards, fit a 1280x800 viewport, support D-pad focus and A/B, and prohibit purchases/reassignment until the case is settled. Test specifically that Double Booking cannot overspend Influence and that a paused or resumed run cannot equip offices after it begins.
+
+## v0.4 assignment catalog acceptance
+
+Run `godot --headless --path . --script res://tests/assignments_smoke.gd` for solvability, per-case constraints, seeded replay, unlock gates, migration and no duplicate Merit. Run `assignments_ui_smoke.gd` for the controller-selectable dossier and dynamically labeled case HUD, then `assignments_balance.gd` for meaningful challenge scaling across 240 fixed seeds. Existing simulation, department, audio and character animation tests remain mandatory.
