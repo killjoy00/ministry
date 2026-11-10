@@ -40,3 +40,9 @@
 Twelve departments now run through a deterministic, data-driven catalog and a controller-accessible Ministry organization chart. Licenses are permanent purchases using Civil Service Merit, require past cases, and can be staffed in combinations (2–5 slots). They change real event outcomes and cause chains; the Chronicle records all department activations. The player's active roster is snapshotted per case, and existing v1 saves are migrated to v2 with currency and traditional upgrades intact.
 
 Preliminary local checks: 104 department mechanic/migration assertions, 14 UI/purchase/navigation checks, and 250 seeded unassisted comparisons, with finite histories and factual parent IDs. The late-case automation combination wins 128/250 cases even with no stamp interventions; it is deliberately powerful and **will require harder follow-up assignments** to maintain engagement. The unstaffed first case remains unchanged. This milestone is incremental infrastructure, not proof of long-term playtest retention. `docs/DEPARTMENTS_AND_PROGRESSION.md` is the authoritative feature guide.
+
+## Escalating assignments — v0.4, November 9, 2026
+
+Added a four-case selector with portraits and Steam Deck navigation. Three harder cases use the same 12 departments and event engine, with bespoke reusable events and non-interchangeable win-condition facts. Case-specific spontaneous incident limits, day deadlines and Influence restoration produce a measurable challenge curve. The engine records chosen case IDs in v3 saves and migrates v1/v2 saves without resetting old Merit, licenses or completed-case progress. `docs/ASSIGNMENTS_AND_DIFFICULTY.md` includes tested goals and actual Godot strategy results.
+
+There is still no Steam Deck hardware verification or public Steam release. Human playtesting is needed to verify that the cases feel strategic, humorous, and legible.

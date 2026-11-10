@@ -6,7 +6,7 @@ A Steam Deck-first, offline, turn-based incremental roguelite about arranging im
 
 ## Status
 
-**Pre-alpha prototype**. One playable case: **A Fowl Election**. The game is not yet released and is not certified or tested on Steam Deck hardware. This repository starter contains source, a full design doc, Godot headless smoke tests, and on-demand export workflows. See [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) and [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
+**Pre-alpha prototype**. Four playable cases, from **A Fowl Election** to **The World's Unlikeliest Apology**. The game is not yet released and is not certified or tested on Steam Deck hardware. This repository starter contains source, a full design doc, Godot headless smoke tests, and on-demand export workflows. See [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) and [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md).
 
 ## Run
 
@@ -17,7 +17,7 @@ A Steam Deck-first, offline, turn-based incremental roguelite about arranging im
 
 ## Gameplay
 
-- Each case lasts seven days. Manipulate daily opportunities and cascade through linked event rules.
+- Choose among four assignments with 7–8-day deadlines, different causal goals and increasing pressure. The later cases unlock after 2, 5 and 9 filed cases.
 - Four different stamps: Nudge, Misfile, Reschedule, and Domino Permit.
 - Reality Strain creates a forecast correction which can become an opportunity.
 - Win or lose, gain Civil Service Merit and buy permanent desk upgrades.
@@ -49,4 +49,4 @@ The playable interface is designed as a hand-illustrated mid-century Ministry ca
 
 The Ministry now has **12 unlockable operational departments** purchased with Civil Service Merit after a case. Choose a 2–5 office loadout in the controller-navigable organization chart. Offices change **actual causality**—misrouted letters, synchronized appointments, parallel outcomes, free knock-on consequences, second stamped approvals, appeals, revised reality corrections, and automatically filed event chains. They do not simply raise damage or income percentages. Everything is seeded, offline and saved, including migration of original save files.
 
-[Read the department roster, costs and combination examples](docs/DEPARTMENTS_AND_PROGRESSION.md). This milestone enriches the first-case experience; future cases still need to grow in difficulty and variety.
+[Read the department roster, costs and combination examples](docs/DEPARTMENTS_AND_PROGRESSION.md). The next milestone adds three harder assignments, with distinct factual success requirements and more rewarding case wins. [Read the case progression and balance audit](docs/ASSIGNMENTS_AND_DIFFICULTY.md).

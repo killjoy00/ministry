@@ -4,6 +4,7 @@ extends Control
 const SimulationEngine = preload("res://scripts/simulation/case_simulation.gd")
 const LivingTown = preload("res://scripts/ui/living_town.gd")
 const MinistryBoard = preload("res://scripts/ui/ministry_board.gd")
+const AssignmentBoard = preload("res://scripts/ui/assignment_board.gd")
 const INK = Color("#273c41")
 const MUTED = Color("#6c6a60")
 const PAPER = Color("#f1e2c4")
@@ -196,10 +197,30 @@ func _buy_upgrade(kind: String) -> void:
 	_render()
 
 func _new_case() -> void:
+	# Legacy/restart helper: repeat the current assignment with a new seed.
 	sim.start_new_run()
 	selected_stamp = "nudge"
 	selected_event = ""
 	feedback = "A fresh case has been placed on your desk."
+	_render()
+
+func _open_assignment_board() -> void:
+	if sim.status == "active":
+		return
+	if gallery_overlay != null:
+		_close_gallery()
+	gallery_overlay = AssignmentBoard.new()
+	gallery_overlay.configure(sim)
+	gallery_overlay.close_requested.connect(_close_gallery)
+	gallery_overlay.case_selected.connect(_start_selected_case)
+	add_child(gallery_overlay)
+
+func _start_selected_case(id: String) -> void:
+	if not sim.start_new_run(-1, id):
+		return
+	selected_stamp = "nudge"
+	selected_event = ""
+	feedback = "Assignment accepted. Your departments are now on duty."
 	_render()
 
 
@@ -263,11 +284,11 @@ func _header() -> void:
 	reference.custom_minimum_size.x = 263
 	reference.add_theme_constant_override("separation", 3)
 	row.add_child(reference)
-	var case_code := _label("CASE 001    /    DAY %d OF %d" % [sim.day, int(sim.case_info["deadline"])], 18, Color("#fae7c3"), true)
+	var case_code := _label("CASE / %s    DAY %d OF %d" % [sim.case_id.to_upper(), sim.day, int(sim.case_info["deadline"])], 18, Color("#fae7c3"), true)
 	case_code.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	case_code.autowrap_mode = TextServer.AUTOWRAP_OFF
 	reference.add_child(case_code)
-	var civil := _label("MERIT: %d     CLASSIFICATION: ROUTINE" % int(sim.profile["merit"]), 14, Color("#c2c9bb"))
+	var civil := _label("MERIT: %d     CLASSIFICATION: %s" % [int(sim.profile["merit"]), sim.case_info["difficulty"]], 14, Color("#c2c9bb"))
 	civil.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	civil.autowrap_mode = TextServer.AUTOWRAP_OFF
 	reference.add_child(civil)
@@ -292,21 +313,24 @@ func _case_file() -> void:
 	contents.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	contents.add_theme_constant_override("separation", 4)
 	row.add_child(contents)
-	contents.add_child(_label("OFFICIAL CASE FILE    /    FORM 19-B    /    TOWN OF ODDFORD", 14, BURGUNDY, true))
-	contents.add_child(_label("A FOWL ELECTION", 31, INK, true))
-	contents.add_child(_label("Get Gerald the Goose elected mayor by Sunday.", 18, INK))
-	contents.add_child(_label("Direct appointment is strictly forbidden.", 15, MUTED))
+	contents.add_child(_label("OFFICIAL CASE FILE    /    CLASSIFIED ASSIGNMENT    /    TOWN OF ODDFORD", 14, BURGUNDY, true))
+	contents.add_child(_label(str(sim.case_info["title"]).to_upper(), 25 if sim.case_id != "fowl" else 31, INK, true))
+	contents.add_child(_label(str(sim.case_info["brief"]), 16, INK))
+	var finished: Array = []
+	for item in sim.case_objective_progress():
+		finished.append(("[OK] " if bool(item["done"]) else "[  ] ") + str(item["label"]))
+	contents.add_child(_label("REQUIREMENTS: " + "   |   ".join(PackedStringArray(finished)), 13, BURGUNDY, true))
 	contents.add_child(_rule())
 	var metrics := HBoxContainer.new()
 	metrics.add_theme_constant_override("separation", 22)
 	contents.add_child(metrics)
-	metrics.add_child(_metric("PUBLIC SUPPORT", "%d / %d" % [sim.support, sim.case_info["required_support"]]))
+	metrics.add_child(_metric(str(sim.case_info["metric"]), "%d / %d" % [sim.support, sim.case_info["required_support"]]))
 	metrics.add_child(_metric("INFLUENCE", "%d / %d" % [sim.influence, sim.maximum_influence()]))
 	metrics.add_child(_metric("REALITY STRAIN", "%d / 6" % sim.strain))
 	var gerald_holder := _card(Color("#ecd7aa"), Color("#9a7854"), 2)
 	gerald_holder.custom_minimum_size.x = 140
 	row.add_child(gerald_holder)
-	gerald_holder.add_child(_illustration("res://assets/illustrated/portrait_gerald.webp", Vector2(128, 132)))
+	gerald_holder.add_child(_illustration("res://assets/illustrated/portrait_%s.webp" % sim.case_info["portrait"], Vector2(128, 132)))
 	var village_holder := _card(Color("#ddcfac"), Color("#967d5c"), 2)
 	village_holder.custom_minimum_size.x = 390
 	row.add_child(village_holder)
@@ -502,7 +526,7 @@ func _result_screen() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 26)
 	case.add_child(row)
-	row.add_child(_illustration("res://assets/illustrated/incident_election.webp" if sim.status == "won" else "res://assets/illustrated/portrait_clerk.webp", Vector2(240, 230)))
+	row.add_child(_illustration("res://assets/illustrated/%s.webp" % sim.case_info["illustration"] if sim.status == "won" else "res://assets/illustrated/portrait_clerk.webp", Vector2(240, 230)))
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 10)
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -510,7 +534,7 @@ func _result_screen() -> void:
 	content.add_child(_label("CERTIFIED BY THE DEPARTMENT OF HAPPENSTANCE", 15, BURGUNDY, true))
 	content.add_child(_label("CASE CLOSED" if sim.status == "won" else "CASE FILED AS INCOMPLETE", 36, GREEN if sim.status == "won" else BURGUNDY, true))
 	content.add_child(_label(sim.last_outcome, 22, INK))
-	content.add_child(_label("Public support %d / %d     |     Civil Service Merit %d     |     Cases filed %d" % [sim.support, sim.case_info["required_support"], sim.profile["merit"], sim.profile["completed"]], 18, MUTED))
+	content.add_child(_label("%s %d / %d     |     Civil Service Merit %d     |     Cases filed %d" % [sim.case_info["metric"], sim.support, sim.case_info["required_support"], sim.profile["merit"], sim.profile["completed"]], 17, MUTED))
 	content.add_child(_rule())
 	content.add_child(_label("PERMANENT MINISTRY IMPROVEMENTS", 22, INK, true))
 	var upgrades := HBoxContainer.new()
@@ -536,9 +560,10 @@ func _result_screen() -> void:
 	content.add_child(ministry_button)
 	if initial_focus == null:
 		initial_focus = ministry_button
-	var new_case := _button("FILE ANOTHER CASE", false, true)
+	var new_case := _button("FILE ANOTHER CASE  /  CHOOSE ASSIGNMENT", false, true)
+	new_case.name = "ChooseAssignmentButton"
 	new_case.custom_minimum_size.y = 64
-	new_case.pressed.connect(_new_case)
+	new_case.pressed.connect(_open_assignment_board)
 	content.add_child(new_case)
 	if initial_focus == null:
 		initial_focus = new_case
@@ -616,10 +641,13 @@ func _close_gallery() -> void:
 	if gallery_overlay == null:
 		return
 	var closed_ministry: bool = gallery_overlay is MinistryBoard
+	var closed_cases: bool = gallery_overlay is AssignmentBoard
 	gallery_overlay.queue_free()
 	gallery_overlay = null
 	if closed_ministry:
 		_render()  # Refresh Merit, equipment status and access buttons.
+	elif closed_cases and is_instance_valid(initial_focus) and initial_focus.is_inside_tree():
+		initial_focus.grab_focus()
 	elif is_instance_valid(initial_focus) and initial_focus.is_inside_tree():
 		initial_focus.grab_focus()
 
@@ -649,7 +677,7 @@ func _chronicle() -> void:
 	scroll.add_child(entries)
 	for entry in sim.history_summary(9):
 		var reason: String = "  (because: %s)" % entry["because"] if not str(entry["because"]).is_empty() else ""
-		var score: String = "  [+%d support]" % int(entry["support"]) if int(entry["support"]) > 0 else ""
+		var score: String = "  [+%d momentum]" % int(entry["support"]) if int(entry["support"]) > 0 else ""
 		entries.add_child(_label("DAY %d   |   %s  -  %s%s%s" % [entry["day"], entry["title"], entry["text"], score, reason], 16, INK))
 
 func _footer() -> void:
@@ -685,7 +713,7 @@ func _footer() -> void:
 
 func _event_caption(rule: Dictionary) -> String:
 	var chance: int = roundi(float(rule["chance"]) * 100.0)
-	var support_label: String = "   /  +%d support" % int(rule["support"]) if int(rule["support"]) > 0 else ""
+	var support_label: String = "   /  +%d momentum" % int(rule["support"]) if int(rule["support"]) > 0 else ""
 	return "%s    |    %d%% chance%s\n%s" % [rule["title"], chance, support_label, rule["text"]]
 
 func _effects_label(rule: Dictionary) -> String:
