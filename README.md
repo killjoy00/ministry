@@ -60,3 +60,7 @@ Miss Quill offers a skippable four-step tutorial on a new day-one save. In an is
 ## Oddford incident atlas (v0.5)
 
 All four assignments now have **109 more hand-authored, fact-linked incidents**: 16 cross-case civic threads plus 93 case-specific incidents. Each assignment has 65-70 possible incidents, but new incidents are conditional, so they do not crowd the first-day options. The same stamped event engine, provenance, department powers, and save system are used throughout. [Read the incident atlas and its seeded-playtest findings](docs/INCIDENT_ATLAS.md).
+
+### Stamp desk
+
+Pick an incident, choose a stamp, then **File Stamp** (X) and **Advance Day** (Y). The preview shows chance and cost; choosing a stamp alone does not apply it. See [Stamp desk guide](docs/STAMP_DESK_GUIDE.md).
