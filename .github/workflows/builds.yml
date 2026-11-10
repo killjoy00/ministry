@@ -60,6 +60,8 @@ jobs:
         run: godot --headless --path . --script res://tests/assignments_ui_smoke.gd
       - name: Seeded difficulty progression and department value
         run: godot --headless --path . --script res://tests/assignments_balance.gd
+      - name: First-day practice and causal dossier regression
+        run: godot --headless --path . --script res://tests/onboarding_causality_smoke.gd
       - name: Build Linux (Steam Deck native candidate)
         run: |
           mkdir -p build
