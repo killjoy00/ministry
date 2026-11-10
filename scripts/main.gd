@@ -320,17 +320,17 @@ func _header() -> void:
 	var banner := PanelContainer.new()
 	var style := _style(Color("#27464c"), Color("#89755b"), 1, 8, 7, 12)
 	banner.add_theme_stylebox_override("panel", style)
-	banner.custom_minimum_size.y = 77
+	banner.custom_minimum_size.y = 68
 	root_view.add_child(banner)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	banner.add_child(row)
-	row.add_child(_illustration("res://assets/seal.svg", Vector2(59, 59)))
+	row.add_child(_illustration("res://assets/seal.svg", Vector2(48, 48)))
 	var heading := VBoxContainer.new()
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_theme_constant_override("separation", 1)
 	row.add_child(heading)
-	var name := _label("THE MINISTRY OF COINCIDENCES", 31, Color("#f8e8bc"), true)
+	var name := _label("THE MINISTRY OF COINCIDENCES", 28, Color("#f8e8bc"), true)
 	name.autowrap_mode = TextServer.AUTOWRAP_OFF
 	heading.add_child(name)
 	heading.add_child(_label("OFFICE OF DELICATE INTERVENTIONS     |     EST. 1893", 14, Color("#b7ccbf")))
@@ -358,7 +358,7 @@ func _active_screen() -> void:
 
 func _case_file() -> void:
 	var cover := _card(PAPER, Color("#af8f62"), 2)
-	cover.custom_minimum_size.y = 178
+	cover.custom_minimum_size.y = 149
 	root_view.add_child(cover)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 9)
@@ -382,16 +382,16 @@ func _case_file() -> void:
 	metrics.add_child(_metric("INFLUENCE", "%d / %d" % [sim.influence, sim.maximum_influence()]))
 	metrics.add_child(_metric("REALITY STRAIN", "%d / 6" % sim.strain))
 	var gerald_holder := _card(Color("#ecd7aa"), Color("#9a7854"), 2)
-	gerald_holder.custom_minimum_size.x = 140
+	gerald_holder.custom_minimum_size.x = 115
 	row.add_child(gerald_holder)
-	gerald_holder.add_child(_illustration("res://assets/illustrated/portrait_%s.webp" % sim.case_info["portrait"], Vector2(128, 132)))
+	gerald_holder.add_child(_illustration("res://assets/illustrated/portrait_%s.webp" % sim.case_info["portrait"], Vector2(106, 108)))
 	var village_holder := _card(Color("#ddcfac"), Color("#967d5c"), 2)
-	village_holder.custom_minimum_size.x = 390
+	village_holder.custom_minimum_size.x = 352
 	row.add_child(village_holder)
 	var town_column := VBoxContainer.new()
 	town_column.add_theme_constant_override("separation", 4)
 	village_holder.add_child(town_column)
-	town_column.add_child(_illustration("res://assets/illustrated/oddford_banner.webp", Vector2(368, 98)))
+	town_column.add_child(_illustration("res://assets/illustrated/oddford_banner.webp", Vector2(332, 74)))
 	var doors := HBoxContainer.new()
 	doors.add_theme_constant_override("separation", 6)
 	town_column.add_child(doors)
@@ -416,7 +416,7 @@ func _case_file() -> void:
 	doors.add_child(department_button)
 
 func _event_tray(parent: HBoxContainer) -> void:
-	var panel := _card(CARD, BORDER)
+	var panel := _card(Color("#fff4dd"), Color("#b89564"), 2)
 	panel.custom_minimum_size.x = 710
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(panel)
@@ -435,10 +435,22 @@ func _event_tray(parent: HBoxContainer) -> void:
 	var tray_tag := _label("%d OF %d FILED" % [filed_count, stamp_limit], 14, BURGUNDY, true)
 	tray_tag.autowrap_mode = TextServer.AUTOWRAP_OFF
 	line.add_child(tray_tag)
-	content.add_child(_label("Other incidents can still happen without a stamp.", 16, MUTED))
 	var available: Array = sim.available_events()
 	if selected_event.is_empty() or sim.get_rule(selected_event).is_empty() or not sim._eligible(sim.get_rule(selected_event)):
 		selected_event = str(available[0]["id"]) if not available.is_empty() else ""
+	content.add_child(_incident_stage(sim.get_rule(selected_event)))
+	var list_head := HBoxContainer.new()
+	list_head.add_theme_constant_override("separation", 8)
+	content.add_child(list_head)
+	var options_caption := _label("AVAILABLE INCIDENTS  /  SELECT ONE TO INFLUENCE", 13, BURGUNDY, true)
+	options_caption.autowrap_mode = TextServer.AUTOWRAP_OFF
+	options_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list_head.add_child(options_caption)
+	var count := _label("%d POSSIBLE" % available.size(), 13, MUTED, true)
+	count.autowrap_mode = TextServer.AUTOWRAP_OFF
+	count.custom_minimum_size.x = 100
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	list_head.add_child(count)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.follow_focus = true
@@ -456,13 +468,105 @@ func _event_tray(parent: HBoxContainer) -> void:
 		button.expand_icon = true
 		button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.add_theme_constant_override("h_separation", 12)
-		button.custom_minimum_size.y = 73
-		button.add_theme_font_size_override("font_size", 18)
+		button.custom_minimum_size.y = 65
+		button.add_theme_font_size_override("font_size", 16)
 		button.set_meta("event_id", str(rule["id"]))
 		button.pressed.connect(_select_event.bind(str(rule["id"])))
 		entries.add_child(button)
 		if initial_focus == null or picked:
 			initial_focus = button
+
+func _incident_stage(rule: Dictionary) -> Control:
+	# Stage shows potential events; it never asserts they occurred.
+	var frame := PanelContainer.new()
+	frame.name = "IncidentSpotlight"
+	frame.custom_minimum_size.y = 150
+	frame.add_theme_stylebox_override("panel", _style(Color("#e4d3af"), BURGUNDY, 2, 8, 0, 0))
+	var stage := Control.new()
+	stage.name = "IncidentTheater"
+	stage.custom_minimum_size.y = 150
+	stage.clip_contents = true
+	frame.add_child(stage)
+	var landscape := TextureRect.new()
+	landscape.name = "OddfordStageBackdrop"
+	landscape.texture = load("res://assets/illustrated/oddford_square.webp") as Texture2D
+	landscape.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	landscape.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	landscape.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	landscape.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage.add_child(landscape)
+	var tint := ColorRect.new()
+	tint.color = Color("#18343836")
+	tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage.add_child(tint)
+	if rule.is_empty():
+		var none := _label("THE TOWN IS TEMPORARILY OUT OF INCIDENTS", 18, CARD, true)
+		none.position = Vector2(32, 57)
+		stage.add_child(none)
+		return frame
+	var character := TextureRect.new()
+	character.name = "IncidentStageCharacter"
+	character.texture = load("res://assets/illustrated/portrait_%s.webp" % _incident_actor(rule)) as Texture2D
+	character.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	character.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	character.position = Vector2(10, 14)
+	character.size = Vector2(124, 130)
+	character.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage.add_child(character)
+	var paper := PanelContainer.new()
+	paper.name = "IncidentStageDossier"
+	paper.anchor_left = 0.20
+	paper.anchor_right = 0.76
+	paper.anchor_top = 0.0
+	paper.anchor_bottom = 1.0
+	paper.offset_left = 0
+	paper.offset_right = -3
+	paper.offset_top = 10
+	paper.offset_bottom = -10
+	paper.add_theme_stylebox_override("panel", _style(Color("#fff2dceF"), Color("#976b5b"), 1, 8, 7, 11))
+	stage.add_child(paper)
+	var memo := VBoxContainer.new()
+	memo.add_theme_constant_override("separation", 2)
+	paper.add_child(memo)
+	memo.add_child(_label("UNDER OBSERVATION  /  " + str(rule["place"]).to_upper(), 12, BURGUNDY, true))
+	var title := _label(str(rule["title"]), 19, INK, true)
+	title.max_lines_visible = 2
+	memo.add_child(title)
+	var caption := _label(str(rule["text"]), 13, MUTED)
+	caption.max_lines_visible = 2
+	memo.add_child(caption)
+	var odds := _label("%d%% CHANCE IF ATTEMPTED  /  NOT GUARANTEED" % roundi(float(rule["chance"]) * 100.0), 13, GREEN, true)
+	memo.add_child(odds)
+	var postcard := PanelContainer.new()
+	postcard.name = "IncidentStagePostcard"
+	postcard.anchor_left = 0.78
+	postcard.anchor_right = 0.985
+	postcard.anchor_top = 0.0
+	postcard.anchor_bottom = 1.0
+	postcard.offset_top = 10
+	postcard.offset_bottom = -10
+	postcard.add_theme_stylebox_override("panel", _style(Color("#fff4dd"), Color("#7e454c"), 2, 5, 4, 4))
+	stage.add_child(postcard)
+	var image := _illustration(_event_illustration(str(rule["id"])), Vector2(112, 117))
+	image.name = "IncidentStageIllustration"
+	postcard.add_child(image)
+	return frame
+
+func _incident_actor(rule: Dictionary) -> String:
+	var id: String = str(rule.get("id", ""))
+	var place: String = str(rule.get("place", ""))
+	if "goose" in id or "sandwich" in id:
+		return "gerald"
+	if place == "Bakery":
+		return "baker"
+	if place == "Post Office":
+		return "clerk"
+	if place == "Town Hall":
+		return "mayor"
+	if place == "Public Gardens":
+		return "organizer"
+	return "reporter"
 
 func _incident_name(id: String) -> String:
 	# Data-driven art families: a card remains legible even for events without
@@ -757,7 +861,7 @@ func _close_gallery() -> void:
 
 func _chronicle() -> void:
 	var ledger := _card(Color("#fcf2dd"), BORDER)
-	ledger.custom_minimum_size.y = 117
+	ledger.custom_minimum_size.y = 101
 	root_view.add_child(ledger)
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 3)
