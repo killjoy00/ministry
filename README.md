@@ -56,3 +56,7 @@ The Ministry now has **12 unlockable operational departments** purchased with Ci
 Miss Quill offers a skippable four-step tutorial on a new day-one save. In an isolated, deterministic practice case, players Nudge an abandoned sandwich, advance the day, and inspect why Gerald followed it. Practice does not spend real Influence/Merit or change saves; B/Escape skips and **? HELP** / keyboard **H** reopens it.
 
 **WHY?** beside the stamp controls (keyboard **I**) opens an inspectable event dossier: ALL/ANY prerequisite facts and their sources, conditional stamp chances, normal versus Misfile-only potential follow-ups, and real journaled causes. Recorded incidents in the Chronicle link directly to their dossiers. Full D-pad/A/B support. [Read the briefing and causality guide](docs/FIRST_DAY_BRIEFING_AND_EVIDENCE.md).
+
+### Stamp desk
+
+Pick an incident, choose a stamp, then **File Stamp** (X) and **Advance Day** (Y). The preview shows chance and cost; choosing a stamp alone does not apply it. See [Stamp desk guide](docs/STAMP_DESK_GUIDE.md).
