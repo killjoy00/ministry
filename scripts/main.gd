@@ -619,113 +619,116 @@ func _stamp_block_reason(rule: Dictionary) -> String:
     return "This stamp cannot be filed for the selected incident."
 
 func _stamp_desk(parent: HBoxContainer) -> void:
-    var panel := _card(Color("#f0dfbb"), Color("#af875f"), 2)
-    panel.custom_minimum_size.x = 464
-    parent.add_child(panel)
-    var outer := VBoxContainer.new()
-    outer.add_theme_constant_override("separation", 4)
-    panel.add_child(outer)
-    var heading := HBoxContainer.new()
-    heading.add_theme_constant_override("separation", 8)
-    outer.add_child(heading)
-    var icon := _illustration("res://assets/illustrated/stamp_%s_small.webp" % selected_stamp, Vector2(36, 32))
-    icon.name = "StampDeskIcon"
-    heading.add_child(icon)
-    var title := _label("2. CHOOSE A STAMP", 21, INK, true)
-    title.autowrap_mode = TextServer.AUTOWRAP_OFF
-    heading.add_child(title)
-    var instructions := _label("Pick a stamp below. X files it; Y runs the day.", 14, MUTED)
-    instructions.autowrap_mode = TextServer.AUTOWRAP_OFF
-    outer.add_child(instructions)
-    var buttons := HBoxContainer.new()
-    buttons.add_theme_constant_override("separation", 4)
-    outer.add_child(buttons)
-    var names := {"nudge": "NUDGE", "misfile": "MISFILE", "reschedule": "DELAY", "domino": "DOMINO"}
-    for id in SimulationEngine.STAMP_ORDER:
-        var choice := _button(names[id], id == selected_stamp)
-        choice.name = "StampChoice_" + id
-        choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-        choice.custom_minimum_size = Vector2(99, 42)
-        choice.add_theme_font_size_override("font_size", 13)
-        choice.tooltip_text = "%s: %s" % [SimulationEngine.STAMPS[id]["name"], SimulationEngine.STAMPS[id]["description"]]
-        choice.pressed.connect(_select_stamp.bind(id))
-        buttons.add_child(choice)
-    var scroll := ScrollContainer.new()
-    scroll.name = "StampPreviewScroll"
-    scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-    outer.add_child(scroll)
-    var preview := VBoxContainer.new()
-    preview.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    preview.add_theme_constant_override("separation", 2)
-    scroll.add_child(preview)
-    var rule: Dictionary = sim.get_rule(selected_event)
-    if not rule.is_empty():
-        var incident_row := HBoxContainer.new()
-        incident_row.add_theme_constant_override("separation", 7)
-        preview.add_child(incident_row)
-        incident_row.add_child(_illustration(_event_illustration(str(rule["id"])), Vector2(48, 52)))
-        var explanation := VBoxContainer.new()
-        explanation.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-        explanation.add_theme_constant_override("separation", 1)
-        incident_row.add_child(explanation)
-        explanation.add_child(_label("TARGET: " + str(rule["title"]), 15, BURGUNDY, true))
-        explanation.add_child(_label(_stamp_effect_preview(rule), 14, INK))
-        var stamp: Dictionary = SimulationEngine.STAMPS[selected_stamp]
-        var paid_strain: int = maxi(1, int(stamp["strain"]) - int(sim.profile.get("audit", 0)))
-        preview.add_child(_label("Cost when day runs: %d Influence, +%d Strain" % [stamp["cost"], paid_strain], 14, MUTED))
-        if not sim.can_stamp(selected_stamp, selected_event):
-            preview.add_child(_label(_stamp_block_reason(rule), 14, BURGUNDY))
-    else:
-        preview.add_child(_label("Select an incident from the left to begin.", 15, MUTED))
-    var filed: Array[String] = []
-    for entry in [sim.pending, sim.second_pending]:
-        if entry.is_empty(): continue
-        var event: Dictionary = sim.get_rule(str(entry["target"]))
-        filed.append("%s on %s" % [SimulationEngine.STAMPS[entry["stamp"]]["name"], str(event.get("title", "incident"))])
-    var status_text: String = "FILED FOR TODAY: " + "; ".join(filed) if not filed.is_empty() else "NOT FILED: The selected stamp has not been applied."
-    preview.add_child(_label(status_text, 14, GREEN if not filed.is_empty() else BURGUNDY, true))
-    if not filed.is_empty():
-        preview.add_child(_label("Filing is reversible until you advance the day.", 13, MUTED))
-    preview.add_child(_label("FORECAST: " + sim.forecast(), 13, MUTED))
-    var actions := HBoxContainer.new()
-    actions.add_theme_constant_override("separation", 5)
-    outer.add_child(actions)
-    var file_caption: String = "X  FILE STAMP"
-    if not sim.pending.is_empty():
-        file_caption = "X  FILE 2ND STAMP" if sim.has_department("double_booking") else "X  REPLACE STAMP"
-    var approve := _button(file_caption)
-    approve.name = "FileStampButton"
-    approve.custom_minimum_size = Vector2(198, 38)
-    approve.add_theme_font_size_override("font_size", 16)
-    approve.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    approve.autowrap_mode = TextServer.AUTOWRAP_OFF
-    approve.disabled = not sim.can_stamp(selected_stamp, selected_event)
-    approve.tooltip_text = "File the selected stamp on the selected incident. Costs apply when the day advances."
-    approve.pressed.connect(_approve_stamp)
-    actions.add_child(approve)
-    var undo := _button("B  UNDO")
-    undo.custom_minimum_size.x = 97
-    undo.add_theme_font_size_override("font_size", 15)
-    undo.autowrap_mode = TextServer.AUTOWRAP_OFF
-    undo.disabled = sim.pending.is_empty() and sim.second_pending.is_empty()
-    undo.pressed.connect(_clear_stamp)
-    actions.add_child(undo)
-    var why := _button("WHY?")
-    why.name = "InspectIncidentButton"
-    why.custom_minimum_size.x = 90
-    why.tooltip_text = "Inspect prerequisites, possible consequences and recorded causes"
-    why.disabled = rule.is_empty()
-    why.pressed.connect(func(): _open_inspector(selected_event))
-    actions.add_child(why)
-    var advance := _button("Y  ADVANCE DAY  /  RESOLVE EVENTS", false, true)
-    advance.name = "AdvanceDayButton"
-    advance.custom_minimum_size.y = 45
-    advance.add_theme_font_size_override("font_size", 16)
-    advance.tooltip_text = "Resolve filed interventions and natural incidents. Filing is optional."
-    advance.pressed.connect(_advance_day)
-    outer.add_child(advance)
+	var panel := _card(Color("#f0dfbb"), Color("#af875f"), 2)
+	panel.custom_minimum_size.x = 464
+	parent.add_child(panel)
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 4)
+	panel.add_child(outer)
+	var heading := HBoxContainer.new()
+	heading.add_theme_constant_override("separation", 8)
+	outer.add_child(heading)
+	var icon := _illustration("res://assets/illustrated/stamp_%s_small.webp" % selected_stamp, Vector2(36, 32))
+	icon.name = "StampDeskIcon"
+	heading.add_child(icon)
+	var title := _label("2. CHOOSE A STAMP", 21, INK, true)
+	title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	heading.add_child(title)
+	var instructions := _label("CHOOSE A SEAL  /  X FILES IT  /  Y RUNS THE DAY", 12, MUTED)
+	instructions.autowrap_mode = TextServer.AUTOWRAP_OFF
+	outer.add_child(instructions)
+	var stamps := GridContainer.new()
+	stamps.columns = 2
+	stamps.add_theme_constant_override("h_separation", 6)
+	stamps.add_theme_constant_override("v_separation", 5)
+	outer.add_child(stamps)
+	var names := {"nudge": "NUDGE", "misfile": "MISFILE", "reschedule": "DELAY", "domino": "DOMINO"}
+	for id in SimulationEngine.STAMP_ORDER:
+		var button := _button(names[id], id == selected_stamp)
+		button.name = "StampChoice_" + id
+		button.icon = load("res://assets/illustrated/stamp_%s_small.webp" % id) as Texture2D
+		button.expand_icon = true
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.add_theme_constant_override("h_separation", 2)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.custom_minimum_size = Vector2(196, 39)
+		button.add_theme_font_size_override("font_size", 15)
+		button.tooltip_text = "%s: %s" % [SimulationEngine.STAMPS[id]["name"], SimulationEngine.STAMPS[id]["description"]]
+		button.pressed.connect(_select_stamp.bind(id))
+		stamps.add_child(button)
+	var preview := VBoxContainer.new()
+	preview.name = "StampPreview"
+	preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	preview.add_theme_constant_override("separation", 2)
+	outer.add_child(preview)
+	var rule: Dictionary = sim.get_rule(selected_event)
+	var stamp: Dictionary = SimulationEngine.STAMPS[selected_stamp]
+	var paid_strain: int = maxi(1, int(stamp["strain"]) - int(sim.profile.get("audit", 0)))
+	var filed: Array[String] = []
+	for entry in [sim.pending, sim.second_pending]:
+		if entry.is_empty():
+			continue
+		var event: Dictionary = sim.get_rule(str(entry["target"]))
+		filed.append("%s / %s" % [SimulationEngine.STAMPS[entry["stamp"]]["name"], str(event.get("title", "incident"))])
+	var status_text: String = "FILED FOR TODAY: " + "; ".join(filed) if not filed.is_empty() else "NOT FILED: Choose a seal and press X."
+	var state := _label(status_text, 14, GREEN if not filed.is_empty() else BURGUNDY, true)
+	state.name = "StampFilingStatus"
+	state.max_lines_visible = 2
+	preview.add_child(state)
+	if not rule.is_empty():
+		var target := _label("TARGET / " + str(rule["title"]), 14, BURGUNDY, true)
+		target.max_lines_visible = 1
+		preview.add_child(target)
+		var outcome := _label(_stamp_effect_preview(rule), 14, INK)
+		outcome.max_lines_visible = 2
+		preview.add_child(outcome)
+		preview.add_child(_label("Cost when day runs: %d Influence / +%d Strain" % [stamp["cost"], paid_strain], 13, MUTED))
+		if not sim.can_stamp(selected_stamp, selected_event):
+			var reason := _label(_stamp_block_reason(rule), 13, BURGUNDY)
+			reason.max_lines_visible = 2
+			preview.add_child(reason)
+	else:
+		preview.add_child(_label("Select an incident from the left to begin.", 14, MUTED))
+	var outlook: String = sim.forecast()
+	if outlook != "No correction currently forecast.":
+		preview.add_child(_label("REALITY FORECAST / " + outlook, 13, BURGUNDY))
+	var actions := HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 5)
+	outer.add_child(actions)
+	var file_caption: String = "X  FILE STAMP"
+	if not sim.pending.is_empty():
+		file_caption = "X  FILE 2ND STAMP" if sim.has_department("double_booking") else "X  REPLACE STAMP"
+	var approve := _button(file_caption)
+	approve.name = "FileStampButton"
+	approve.custom_minimum_size = Vector2(198, 38)
+	approve.add_theme_font_size_override("font_size", 16)
+	approve.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	approve.autowrap_mode = TextServer.AUTOWRAP_OFF
+	approve.disabled = not sim.can_stamp(selected_stamp, selected_event)
+	approve.tooltip_text = "File the selected stamp on the selected incident. Costs apply when the day advances."
+	approve.pressed.connect(_approve_stamp)
+	actions.add_child(approve)
+	var undo := _button("B  UNDO")
+	undo.custom_minimum_size.x = 97
+	undo.add_theme_font_size_override("font_size", 15)
+	undo.autowrap_mode = TextServer.AUTOWRAP_OFF
+	undo.disabled = sim.pending.is_empty() and sim.second_pending.is_empty()
+	undo.pressed.connect(_clear_stamp)
+	actions.add_child(undo)
+	var why := _button("WHY?")
+	why.name = "InspectIncidentButton"
+	why.custom_minimum_size.x = 90
+	why.tooltip_text = "Inspect prerequisites, possible consequences and recorded causes"
+	why.disabled = rule.is_empty()
+	why.pressed.connect(func(): _open_inspector(selected_event))
+	actions.add_child(why)
+	var advance := _button("Y  ADVANCE DAY  /  RESOLVE EVENTS", false, true)
+	advance.name = "AdvanceDayButton"
+	advance.custom_minimum_size.y = 45
+	advance.add_theme_font_size_override("font_size", 16)
+	advance.tooltip_text = "Resolve filed interventions and natural incidents. Filing is optional."
+	advance.pressed.connect(_advance_day)
+	outer.add_child(advance)
 
 func _result_screen() -> void:
 	var case := _card(PAPER, Color("#af8f62"), 2)
