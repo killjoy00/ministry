@@ -36,3 +36,7 @@ Run `godot --headless --path . --script res://tests/assignments_smoke.gd` for so
 ## First-day briefing and causal inspector regression
 
 Run `godot --headless --path . --script res://tests/onboarding_causality_smoke.gd` on PR and export. Verify isolated practice, four steps, real recorded sources, normal/Misfile alternative routes, correctly labelled conditional chances, no phantom future events, and no changes to real Merit or case saves. The seen preference is stored separately at `user://ministry_briefing.json`.
+
+## Incident atlas regression (v0.5)
+
+Run `godot --headless --path . --script res://tests/incident_expansion_smoke.gd` on PRs and game exports. Require 109 unique authored incidents, reachable case-specific causal graphs, no extra unconditional initial incidents, two or more independently produced conditions for advanced win objectives, actual dynamic execution of new incidents across seeded runs, and reproducible event histories. Re-run `assignments_balance.gd` to prevent the expanded incident pool from trivializing difficult cases. Compare playtest understanding and surprises, not just the raw count of event rules.

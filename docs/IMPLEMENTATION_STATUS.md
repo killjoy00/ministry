@@ -46,3 +46,7 @@ Preliminary local checks: 104 department mechanic/migration assertions, 14 UI/pu
 Added a four-case selector with portraits and Steam Deck navigation. Three harder cases use the same 12 departments and event engine, with bespoke reusable events and non-interchangeable win-condition facts. Case-specific spontaneous incident limits, day deadlines and Influence restoration produce a measurable challenge curve. The engine records chosen case IDs in v3 saves and migrates v1/v2 saves without resetting old Merit, licenses or completed-case progress. `docs/ASSIGNMENTS_AND_DIFFICULTY.md` includes tested goals and actual Godot strategy results.
 
 There is still no Steam Deck hardware verification or public Steam release. Human playtesting is needed to verify that the cases feel strategic, humorous, and legible.
+
+## Oddford incident expansion — November 9, 2026
+
+The data-driven `expanded_incidents.gd` adds 109 prerequisite-linked incidents with new routes through all four assignments (70/65/67/66 possible incidents per case). The existing original rules, objectives, stamps, departments, and save schema are preserved; seeded continuation is version-sensitive when the authored catalog changes. An actual-Godot expansion regression verifies rule reachability, seeded execution and provenance, in addition to the full existing test suite. See `docs/INCIDENT_ATLAS.md`. Human playtesting and Steam Deck hardware verification remain outstanding.

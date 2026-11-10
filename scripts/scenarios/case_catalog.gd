@@ -3,6 +3,7 @@ extends RefCounted
 ## Existing election rules are never edited by a new case.
 
 const Election = preload("res://scripts/scenarios/fowl_election.gd")
+const Expanded = preload("res://scripts/scenarios/expanded_incidents.gd")
 const ORDER = ["fowl", "bakery", "thursday", "apology"]
 const SHARED_IDS = [
 	"rain", "sandwich", "post", "traffic", "wind", "fair", "coffee",
@@ -75,12 +76,13 @@ static func rules(id: String) -> Array:
 		return Election.rules()
 	var shared: Array = []
 	for event in Election.rules():
-		if SHARED_IDS.has(str(event["id"])):
+		if SHARED_IDS.has(str(event["id"])) or Expanded.SHARED_IDS.has(str(event["id"])):
 			shared.append(event.duplicate(true))
 	match id:
 		"bakery": shared.append_array(_bakery_rules())
 		"thursday": shared.append_array(_thursday_rules())
 		"apology": shared.append_array(_apology_rules())
+	shared.append_array(Expanded.case_rules(id))
 	return shared
 
 static func _event(id: String, title: String, text: String, chance: float, all_facts: Array, any_facts: Array, outputs: Array, points: int, place: String, alternate: Array = [], alt_points: int = 0, alt_text: String = "") -> Dictionary:

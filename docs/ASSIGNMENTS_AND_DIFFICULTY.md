@@ -54,6 +54,19 @@ The intended curve is clear in the purposeful-only column. An extremely strong l
 
 The tests assert that cases remain solvable and deterministic, all win-condition facts are causally reachable, no locked assignment can be selected, and no result awards Merit twice. `tests/assignments_balance.gd` and `tests/assignments_smoke.gd` provide the executable contracts.
 
+## v0.5 balance after the Oddford incident atlas expansion
+
+The table above is the **v0.4 baseline** before the new incident branches. The expanded catalog adds alternative ways to reach mandatory facts, so the same 240-seed strategy audit has been rerun in actual Godot 4.7.2. These are deterministic agent strategy simulations, not human win-rate estimates:
+
+| Case | No stamp | Purposeful Nudge | Nudge + five departments |
+|---|---:|---:|---:|
+| Election | 21/240 | 230/240 | 240/240 |
+| Bank | 0/240 | 128/240 | 211/240 |
+| Thursday | 0/240 | 101/240 | 198/240 |
+| Apology | 2/240 | 24/240 | 84/240 |
+
+The advanced cases remain successively harder using the **same strategy**, while installed departments substantially improve success. A broader causal graph also makes more intermediate events possible, so these values are not stable across catalog versions. All four objectives still require their named factual outcomes. See `docs/INCIDENT_ATLAS.md` for the new reusable pathways.
+
 ## Future work
 
 Add selectable case modifiers (e.g., a shorter deadline or stricter Reality Strain audit), boss-style auditor assignments, and more genuinely different use cases for the departments. Playtests should inspect whether the new cases produce *clear but unexpected* chains; do not tune solely for target win rates.
