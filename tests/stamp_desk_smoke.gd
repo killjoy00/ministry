@@ -24,7 +24,8 @@ func _run() -> void:
     scene._render()
     await process_frame
     await process_frame
-    _check(_label_has(scene,"1. CHOOSE AN INCIDENT"),"First step labelled")
+    _check(_label_has(scene,"1. CHOOSE UP TO 1 INCIDENT TO INFLUENCE"),"Default one-incident influence limit is explicit")
+    _check(_label_has(scene,"0 OF 1 FILED"),"Default filing count begins at zero")
     _check(_label_has(scene,"2. CHOOSE A STAMP"),"Second step labelled")
     _check(_label_has(scene,"NOT FILED"),"Selection is not filed")
     _check(_label_has(scene,"35% -> 90%"),"True conditional odds preview")
@@ -45,11 +46,13 @@ func _run() -> void:
     _check(not scene.sim.pending.is_empty(),"Filed action is pending")
     _check(scene.sim.influence==influence,"No cost charged until day resolution")
     _check(_label_has(scene,"FILED FOR TODAY"),"Filed state shown")
+    _check(_label_has(scene,"1 OF 1 FILED"),"Filing counter updates to one")
     _check((_find(scene,"FileStampButton") as Button).text.contains("REPLACE"),"Replacing is explicit")
     _check(scene.get_viewport().gui_get_focus_owner()==_find(scene,"AdvanceDayButton"),"Controller focus advances")
     scene._clear_stamp()
     _check(scene.sim.pending.is_empty(),"Undo clears filing")
     _check(_label_has(scene,"NOT FILED"),"Undo restores selection state")
+    _check(_label_has(scene,"0 OF 1 FILED"),"Undo resets filing counter")
     scene._select_stamp("reschedule")
     await process_frame
     await process_frame
@@ -68,6 +71,22 @@ func _run() -> void:
     scene._approve_stamp()
     scene._advance_day()
     _check(scene.sim.influence<influence+int(scene.sim.case_info.get("regen",2)),"Cost paid on advance")
+    scene.sim = Simulation.new(1, false)
+    scene.sim.run_departments = ["double_booking"]
+    scene.selected_stamp = "nudge"
+    scene.selected_event = ""
+    scene._render()
+    _check(_label_has(scene,"1. CHOOSE UP TO 2 INCIDENTS TO INFLUENCE"),"Double Booking raises the influence limit to two")
+    _check(_label_has(scene,"0 OF 2 FILED"),"Double Booking starts with zero filings")
+    var events: Array = scene.sim.available_events()
+    _check(events.size() >= 2,"At least two incidents available for Double Booking test")
+    if events.size() >= 2:
+        _check(scene.sim.stage_stamp("nudge",str(events[0]["id"])),"First stamp can be filed")
+        scene._render()
+        _check(_label_has(scene,"1 OF 2 FILED"),"First of two filings is counted")
+        _check(scene.sim.stage_stamp("nudge",str(events[1]["id"])),"Second stamp can be filed on a different incident")
+        scene._render()
+        _check(_label_has(scene,"2 OF 2 FILED"),"Second filing fills both slots")
     root.remove_child(scene)
     scene.free()
     if failures.is_empty():
