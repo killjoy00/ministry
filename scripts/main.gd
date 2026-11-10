@@ -426,14 +426,16 @@ func _event_tray(parent: HBoxContainer) -> void:
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 12)
 	content.add_child(line)
-	var heading := _label("1. CHOOSE AN INCIDENT", 23, INK, true)
+	var stamp_limit: int = 2 if sim.has_department("double_booking") else 1
+	var filed_count: int = int(not sim.pending.is_empty()) + int(not sim.second_pending.is_empty())
+	var heading := _label("1. CHOOSE UP TO %d INCIDENT%s TO INFLUENCE" % [stamp_limit, "" if stamp_limit == 1 else "S"], 19, INK, true)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.autowrap_mode = TextServer.AUTOWRAP_OFF
 	line.add_child(heading)
-	var tray_tag := _label("TRAY 01  /  UNFILED", 14, BURGUNDY, true)
+	var tray_tag := _label("%d OF %d FILED" % [filed_count, stamp_limit], 14, BURGUNDY, true)
 	tray_tag.autowrap_mode = TextServer.AUTOWRAP_OFF
 	line.add_child(tray_tag)
-	content.add_child(_label("Pick an incident to influence. Percentages are natural chances, if attempted.", 16, MUTED))
+	content.add_child(_label("Other incidents can still happen without a stamp.", 16, MUTED))
 	var available: Array = sim.available_events()
 	if selected_event.is_empty() or sim.get_rule(selected_event).is_empty() or not sim._eligible(sim.get_rule(selected_event)):
 		selected_event = str(available[0]["id"]) if not available.is_empty() else ""
