@@ -61,6 +61,8 @@ func _button(label: String) -> Button:
 	b.custom_minimum_size.y = 44
 	b.add_theme_font_size_override("font_size", 18)
 	b.add_theme_color_override("font_color", INK)
+	b.add_theme_color_override("font_focus_color", INK)
+	b.add_theme_color_override("font_hover_color", INK)
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color("#f8ead1")
 	normal.border_color = Color("#bdad8b")
@@ -81,6 +83,7 @@ func _scroll(parent: Control) -> VBoxContainer:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.follow_focus = true
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	parent.add_child(scroll)
 	var v := VBoxContainer.new()
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -175,11 +178,13 @@ func _render() -> void:
 	if branches.is_empty():
 		right.add_child(_label("No further event uses these particular outputs.", 17, MUTED))
 	for item in branches:
-		var label: String = ("MISFILE ONLY  /  " if item["route"] == "MISFILE" else "NORMAL  /  ") + str(item["title"]) + "   /   %d%% if attempted" % roundi(float(item["chance"]) * 100.0)
+		var label: String = ("MISFILE ONLY  /  " if item["route"] == "MISFILE" else "NORMAL  /  ") + str(item["title"])
 		var b := _button(label)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.add_theme_font_size_override("font_size", 17)
 		b.pressed.connect(_visit.bind(str(item["id"])))
 		right.add_child(b)
-		right.add_child(_label("Could be enabled by: " + ", ".join(item["because"]), 16, GREEN))
+		right.add_child(_label("%d%% if attempted   /   Could be enabled by: %s" % [roundi(float(item["chance"]) * 100.0), ", ".join(item["because"])], 16, GREEN))
 		if bool(item["already_occurred"]):
 			right.add_child(_label("Already recorded in this case.", 15, GREEN))
 		elif not (item["still_needed"] as Array).is_empty():

@@ -44,6 +44,8 @@ func _button(value: String) -> Button:
 	b.custom_minimum_size.y = 60
 	b.add_theme_font_size_override("font_size", 19)
 	b.add_theme_color_override("font_color", INK)
+	b.add_theme_color_override("font_focus_color", INK)
+	b.add_theme_color_override("font_hover_color", INK)
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color("#fff7e7")
 	normal.border_color = Color("#bdad8b")
