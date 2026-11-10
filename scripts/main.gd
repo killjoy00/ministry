@@ -5,6 +5,9 @@ const SimulationEngine = preload("res://scripts/simulation/case_simulation.gd")
 const LivingTown = preload("res://scripts/ui/living_town.gd")
 const MinistryBoard = preload("res://scripts/ui/ministry_board.gd")
 const AssignmentBoard = preload("res://scripts/ui/assignment_board.gd")
+const CausalityInspector = preload("res://scripts/ui/causality_inspector.gd")
+const FirstDayTutorial = preload("res://scripts/ui/first_day_tutorial.gd")
+const TUTORIAL_SEEN_PATH = "user://ministry_briefing.json"
 const INK = Color("#273c41")
 const MUTED = Color("#6c6a60")
 const PAPER = Color("#f1e2c4")
@@ -25,16 +28,20 @@ var gallery_overlay: Control = null
 func _ready() -> void:
 	sim = SimulationEngine.new()
 	_render()
+	# Avoid intrusive popups during headless CI and never interrupt a resumed
+	# mid-case save. New players see this once; HELP can reopen it at any time.
+	if DisplayServer.get_name() != "headless" and sim.persist and sim.status == "active" and sim.day == 1 and int(sim.profile.get("completed", 0)) == 0 and not FileAccess.file_exists(TUTORIAL_SEEN_PATH):
+		call_deferred("_open_tutorial")
 
 func _input(event: InputEvent) -> void:
 	# Gallery is a modal: back closes it rather than accidentally clearing
 	# an intervention or advancing a simulation step beneath the artwork.
 	if gallery_overlay != null:
-		if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B:
-			_close_gallery()
-			get_viewport().set_input_as_handled()
-		elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-			_close_gallery()
+		if (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_B) or (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
+			if gallery_overlay is FirstDayTutorial:
+				_finish_tutorial()
+			else:
+				_close_gallery()
 			get_viewport().set_input_as_handled()
 		return
 	if event is InputEventJoypadButton and event.pressed:
@@ -76,6 +83,12 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			KEY_M:
 				_toggle_music()
+				get_viewport().set_input_as_handled()
+			KEY_I:
+				_open_inspector(selected_event)
+				get_viewport().set_input_as_handled()
+			KEY_H:
+				_open_tutorial()
 				get_viewport().set_input_as_handled()
 			KEY_MINUS:
 				_adjust_music(-0.10)
@@ -180,6 +193,37 @@ func _open_town_report(records: Array) -> void:
 func _investigate_from_town(event_id: String) -> void:
 	_close_gallery()
 	_select_event(event_id)
+
+func _open_inspector(id: String) -> void:
+	if sim.get_rule(id).is_empty():
+		feedback = "Select an incident to inspect its evidence."
+		_render()
+		return
+	if gallery_overlay != null:
+		_close_gallery()
+	gallery_overlay = CausalityInspector.new()
+	gallery_overlay.configure(sim, id)
+	gallery_overlay.close_requested.connect(_close_gallery)
+	add_child(gallery_overlay)
+
+func _open_tutorial() -> void:
+	if gallery_overlay != null:
+		_close_gallery()
+	gallery_overlay = FirstDayTutorial.new()
+	gallery_overlay.finished.connect(_finish_tutorial)
+	gallery_overlay.skipped.connect(_finish_tutorial)
+	add_child(gallery_overlay)
+
+func _finish_tutorial() -> void:
+	if not (gallery_overlay is FirstDayTutorial):
+		return
+	# A separate flag avoids changing the case-save schema or old user profiles.
+	# Finishing or skipping both suppress the automatic first-run briefing.
+	var file := FileAccess.open(TUTORIAL_SEEN_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_string('{"version":1,"seen":true}')
+		file.close()
+	_close_gallery()
 
 func _open_ministry() -> void:
 	if gallery_overlay != null:
@@ -502,18 +546,25 @@ func _stamp_desk(parent: HBoxContainer) -> void:
 	actions.add_theme_constant_override("separation", 8)
 	outer.add_child(actions)
 	var approve := _button("X  APPROVE")
-	approve.custom_minimum_size.x = 225
+	approve.custom_minimum_size.x = 188
 	approve.autowrap_mode = TextServer.AUTOWRAP_OFF
 	approve.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	approve.disabled = not sim.can_stamp(selected_stamp, selected_event)
 	approve.pressed.connect(_approve_stamp)
 	actions.add_child(approve)
 	var clear := _button("B  CLEAR")
-	clear.custom_minimum_size.x = 120
+	clear.custom_minimum_size.x = 103
 	clear.autowrap_mode = TextServer.AUTOWRAP_OFF
 	clear.disabled = sim.pending.is_empty() and sim.second_pending.is_empty()
 	clear.pressed.connect(_clear_stamp)
 	actions.add_child(clear)
+	var why := _button("WHY?")
+	why.name = "InspectIncidentButton"
+	why.custom_minimum_size.x = 100
+	why.tooltip_text = "Inspect prerequisites, possible consequences and recorded causes (I on keyboard)"
+	why.disabled = sim.get_rule(selected_event).is_empty()
+	why.pressed.connect(func(): _open_inspector(selected_event))
+	actions.add_child(why)
 	var advance := _button("Y  ADVANCE DAY", false, true)
 	advance.custom_minimum_size.y = 50
 	advance.pressed.connect(_advance_day)
@@ -678,15 +729,31 @@ func _chronicle() -> void:
 	for entry in sim.history_summary(9):
 		var reason: String = "  (because: %s)" % entry["because"] if not str(entry["because"]).is_empty() else ""
 		var score: String = "  [+%d momentum]" % int(entry["support"]) if int(entry["support"]) > 0 else ""
-		entries.add_child(_label("DAY %d   |   %s  -  %s%s%s" % [entry["day"], entry["title"], entry["text"], score, reason], 16, INK))
+		var caption: String = "DAY %d   |   %s  -  %s%s%s" % [entry["day"], entry["title"], entry["text"], score, reason]
+		var source_id: String = str(entry.get("id", ""))
+		if sim.get_rule(source_id).is_empty():
+			entries.add_child(_label(caption, 16, INK))
+		else:
+			var dossier := _button("INSPECT  /  " + caption)
+			dossier.add_theme_font_size_override("font_size", 16)
+			dossier.custom_minimum_size.y = 37
+			dossier.pressed.connect(_open_inspector.bind(source_id))
+			entries.add_child(dossier)
 
 func _footer() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	root_view.add_child(row)
-	var note := _label("NOTHING HAPPENS BY ACCIDENT.    |    CASE SEED: %d" % sim.seed, 14, Color("#dbd2b3"))
+	var note := _label("CASE SEED: %d    |    I: EVIDENCE   H: HELP" % sim.seed, 14, Color("#dbd2b3"))
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(note)
+	var help := _button("?  HELP")
+	help.name = "FirstDayBriefingButton"
+	help.custom_minimum_size = Vector2(89, 30)
+	help.add_theme_font_size_override("font_size", 14)
+	help.tooltip_text = "Reopen the skippable first-day practice briefing"
+	help.pressed.connect(_open_tutorial)
+	row.add_child(help)
 	var director := get_node_or_null("/root/MusicDirector")
 	if director != null:
 		var enabled: bool = bool(director.get("music_enabled"))

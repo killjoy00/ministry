@@ -32,3 +32,7 @@ The Steam Deck board must show all 12 department cards, fit a 1280x800 viewport,
 ## v0.4 assignment catalog acceptance
 
 Run `godot --headless --path . --script res://tests/assignments_smoke.gd` for solvability, per-case constraints, seeded replay, unlock gates, migration and no duplicate Merit. Run `assignments_ui_smoke.gd` for the controller-selectable dossier and dynamically labeled case HUD, then `assignments_balance.gd` for meaningful challenge scaling across 240 fixed seeds. Existing simulation, department, audio and character animation tests remain mandatory.
+
+## First-day briefing and causal inspector regression
+
+Run `godot --headless --path . --script res://tests/onboarding_causality_smoke.gd` on PR and export. Verify isolated practice, four steps, real recorded sources, normal/Misfile alternative routes, correctly labelled conditional chances, no phantom future events, and no changes to real Merit or case saves. The seen preference is stored separately at `user://ministry_briefing.json`.

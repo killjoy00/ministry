@@ -38,3 +38,9 @@ Each case lasts seven in-game days. You can stage interventions, watch causal ev
 ## Illustrated case scene
 
 The top dossier offers **VIEW ODDFORD** and **MEET THE TOWN**; use D-pad/A to open either. Press **B** (or Escape) to close the illustration and return to the same case. The incident cards and selected-incident preview use different illustrations, and all four seals now have bespoke stamp art.
+
+## Briefing and evidence checklist (playtest 1)
+
+On a fresh installation the optional four-form Miss Quill tutorial opens. Complete it with A/Enter or skip with B/Escape; reopen via **? HELP** (keyboard **H**). The tutorial runs a separate practice simulation, so the real case and Merit stay unchanged.
+
+Press **WHY?** after selecting an incident (keyboard **I**) to see ALL/ANY prerequisites, eligible chances, possible NORMAL and MISFILE routes, and recorded source events. Select a historical incident in the Chronicle to inspect real causes. The evidence view closes with B/Escape. Observe whether testers understand a conditional probability and can trace one consequence backward without explanation.

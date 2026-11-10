@@ -558,7 +558,7 @@ func history_summary(limit: int = 11) -> Array:
 				parent_titles.append(str(parent_id).replace("_", " "))
 			else:
 				parent_titles.append(str(rule["title"]))
-		recent.append({"day": e["day"], "title": e["title"], "text": e["text"], "support": e["support"], "because": ", ".join(PackedStringArray(parent_titles))})
+		recent.append({"id": e["id"], "day": e["day"], "title": e["title"], "text": e["text"], "support": e["support"], "because": ", ".join(PackedStringArray(parent_titles))})
 	return recent
 
 func _settle_case() -> void:
