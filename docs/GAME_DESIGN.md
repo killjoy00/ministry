@@ -184,3 +184,7 @@ Each case equips a small loadout (2 initially, up to 5 as the Ministry expands);
 ## 16. Delivered escalation: the case desk
 
 The engine now supports four selectable assignments with distinct fact-based win conditions, not merely higher victory thresholds. The post-election progression includes The Bakery That Bought the Bank, Thursday Has Been Cancelled and The World's Unlikeliest Apology. Unlock milestones are based on filed cases, with higher Merit rewards for the advanced challenges and scenario-specific natural-event/Influence limits. See `docs/ASSIGNMENTS_AND_DIFFICULTY.md` for authored rules, example solutions and balance evidence.
+
+## 17. Incident variety milestone — implemented in v0.5
+
+109 additional conditional, fact-linked incident rules (16 cross-case and 93 case-specific) add multiple paths through the same deterministic engine. Rules have authored prerequisites, conditional chances, outputs and source provenance, not generic random cutscenes. The opening tray remains at 7-10 eligible root incidents per case, and the usual event/day limits apply. The four victory requirements and persistent upgrades are unchanged. See `docs/INCIDENT_ATLAS.md` and `tests/incident_expansion_smoke.gd` for the rule map and executable reachability contract.

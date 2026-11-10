@@ -1,4 +1,6 @@
 extends RefCounted
+
+const Expanded = preload("res://scripts/scenarios/expanded_incidents.gd")
 ## Hand-authored *composable* events. No fixed chain is required to win.
 
 static func description() -> Dictionary:
@@ -49,6 +51,9 @@ static func rules() -> Array:
 	# Their source facts point to the real incident, not an invented storyline.
 	r.append(_event("gossip_column", "An Officially Embarrassing Column", "The Gazette prints an awkwardly accurate civic anecdote.", 0.68, ["public_gossip"], [], ["gossip_column"], 1, "High Street"))
 	r.append(_event("rumour_circulates", "A Rumour With a Filing Number", "An unverified public-interest notice circulates with surprising efficiency.", 0.78, ["public_interest"], [], ["rumour_spread"], 2, "Post Office"))
+	# Original rules retain first claim under the finite daily causal budget.
+	r.append_array(Expanded.shared_rules())
+	r.append_array(Expanded.case_rules("fowl"))
 	return r
 
 static func _event(id: String, title: String, text: String, probability: float, all_facts: Array, any_facts: Array, output_facts: Array, support: int, place: String, misfile_facts: Array = [], misfile_support: int = 0, misfile_text: String = "") -> Dictionary:
