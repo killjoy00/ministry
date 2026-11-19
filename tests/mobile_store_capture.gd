@@ -13,6 +13,10 @@ func _capture(filename: String) -> void:
     for n in range(6):
         await process_frame
     await RenderingServer.frame_post_draw
+    var scroll := game.find_child("MobileContentScroll", true, false) as ScrollContainer
+    if scroll == null or scroll.get_global_rect().size.y < 220.0:
+        errors.append("Collapsed visible game content before " + filename)
+        return
     var image := root.get_viewport().get_texture().get_image()
     if image.is_empty() or image.get_width() < 1000 or image.get_height() < 2000:
         errors.append("Invalid native screenshot " + filename + " " + str(image.get_size()))
@@ -31,7 +35,7 @@ func _go() -> void:
         return
     var output := ProjectSettings.globalize_path(OUT)
     DirAccess.make_dir_recursive_absolute(output)
-    var size := Vector2i(1320, 2868)
+    var size := Vector2i(1320, 2880)
     DisplayServer.window_set_size(size)
     root.size = size
     root.content_scale_size = Vector2i(390, 844)
@@ -65,7 +69,7 @@ func _go() -> void:
     for error in errors:
         printerr("STORE CAPTURE ERROR: ", error)
     if errors.is_empty():
-        print("PASS: seven genuine mobile gameplay store screenshots, 1320x2868")
+        print("PASS: seven genuine mobile gameplay store screenshots")
         quit(0)
     else:
         quit(1)
