@@ -33,6 +33,7 @@ var cards: Array[Control] = []
 var status_label: Label
 var summary: Label
 var skip_button: Button
+var replay_scroll: ScrollContainer
 
 func configure(game: CaseSimulation, history: Array, stamped: Array, day: int, momentum_before: int, momentum_after: int, strain_before: int, strain_after: int) -> void:
     simulation = game
@@ -80,7 +81,11 @@ func _build() -> void:
     background.color = Color("#132b31")
     background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     add_child(background)
-    var center := CenterContainer.new()
+    # Center only horizontally. A CenterContainer vertically shrinks the
+    # expanding ScrollContainer, hiding every scene, beat, and illustration.
+    var center := HBoxContainer.new()
+    center.name = "MobileTheaterSafeSurface"
+    center.alignment = BoxContainer.ALIGNMENT_CENTER
     center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     add_child(center)
     var margins := MarginContainer.new()
@@ -103,6 +108,7 @@ func _build() -> void:
     root.add_child(_label("DAY %d  /  OFFICIAL RECONSTRUCTION" % day_number, 15, GOLD, true))
     var scroll := ScrollContainer.new()
     scroll.name = "MobileTheaterScroll"
+    replay_scroll = scroll
     scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
     scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
     root.add_child(scroll)
@@ -117,6 +123,14 @@ func _build() -> void:
     town.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     town.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
     content.add_child(town)
+    # The existing illustrated Oddford ensemble is part of the replay stage.
+    var cast := TextureRect.new()
+    cast.name = "MobileCausalityCast"
+    cast.texture = load("res://assets/illustrated/oddford_cast.webp") as Texture2D
+    cast.custom_minimum_size.y = 88
+    cast.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    cast.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+    content.add_child(cast)
     var file_note := _panel(PAPER, GOLD)
     content.add_child(file_note)
     var file_row := HBoxContainer.new()
@@ -204,6 +218,10 @@ func _reveal(i: int) -> void:
         return
     var card: Control = cards[i]
     card.modulate.a = 1.0
+    # On a phone the next causal beat must be visible automatically; simply
+    # fading a card below the fold is not a meaningful replay.
+    if replay_scroll != null:
+        replay_scroll.ensure_control_visible(card)
     if i < featured.size():
         status_label.text = str(featured[i].get("title", "Incident"))
     var tween := create_tween()

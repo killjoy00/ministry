@@ -1,9 +1,15 @@
 name: Ministry genuine mobile store screenshots
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/mobile/**'
+      - 'tests/mobile_store_capture.gd'
+      - '.github/workflows/mobile-store-shots.yml'
   push:
     branches: [main]
     paths:
+      - 'scripts/mobile/**'
       - 'tests/mobile_store_capture.gd'
       - '.github/workflows/mobile-store-shots.yml'
 permissions:
@@ -32,7 +38,7 @@ jobs:
           xvfb-run -a -s '-screen 0 1440x2960x24' \
             godot --path . --rendering-method gl_compatibility \
             --script res://tests/mobile_store_capture.gd
-          test "$(find build/mobile-store-shots -maxdepth 1 -name '*.png' | wc -l)" -eq 7
+          test "$(find build/mobile-store-shots -maxdepth 1 -name '*.png' | wc -l)" -eq 8
       - name: Preserve unaltered Godot gameplay images
         if: always()
         uses: actions/upload-artifact@v4

@@ -26,6 +26,7 @@ var selected_stamp: String = "nudge"
 var evidence_id: String = ""
 var feedback: String = ""
 var theater: Control = null
+var confirm_unstamped_day: bool = false
 var tutorial_step: int = 0
 var practice: CaseSimulation = null
 var first_focus: Button
@@ -128,8 +129,7 @@ func _render() -> void:
         "results": _results(body)
         _: _incidents(body)
     _bottom_bar(surface)
-    if first_focus != null:
-        _focus_after_layout(first_focus)
+    # Never auto-scroll the incident choice away from the top of the page.
 
 func _safe_margins() -> Dictionary:
     # Android/iOS safe areas are in physical display pixels; Godot UI operates
@@ -200,7 +200,8 @@ func _incidents(body: VBoxContainer) -> void:
         selected_event = str(available[0].get("id", "")) if not available.is_empty() else ""
     var limit: int = 2 if sim.has_department("double_booking") else 1
     var filed: int = _filed_count()
-    _section(body, "CHOOSE UP TO %d INCIDENT%s TO INFLUENCE" % [limit, "" if limit == 1 else "S"], "%d OF %d FILED TODAY  |  OTHER INCIDENTS MAY HAPPEN NATURALLY" % [filed, limit])
+    _section(body, "1. CHOOSE AN INCIDENT", "Select something in Oddford to influence. You will stamp it next.")
+    body.add_child(_label("%d OF %d FILED  /  Unstamped events may still happen." % [filed, limit], 14, Color("#e9dbc3")))
     var current: Dictionary = sim.get_rule(selected_event)
     if not current.is_empty():
         var featured := _panel(PAPER, GOLD, 2, 12)
@@ -209,6 +210,7 @@ func _incidents(body: VBoxContainer) -> void:
         var frame := VBoxContainer.new()
         frame.add_theme_constant_override("separation", 4)
         featured.add_child(frame)
+        frame.add_child(_label("UNDER OBSERVATION  /  THE TOWN OF ODDFORD", 13, BURGUNDY, true))
         var picture := TextureRect.new()
         picture.name = "MobileIncidentTown"
         picture.texture = load("res://assets/illustrated/oddford_banner.webp") as Texture2D
@@ -228,6 +230,13 @@ func _incidents(body: VBoxContainer) -> void:
         caption.add_child(_label(str(current["title"]), 19, INK, true))
         caption.add_child(_label(str(current.get("place", "Oddford")), 14, BURGUNDY, true))
         caption.add_child(_label("%d%% NATURAL CHANCE IF ATTEMPTED" % roundi(float(current["chance"]) * 100.0), 14, GREEN, true))
+        var actor := TextureRect.new()
+        actor.name = "MobileIncidentCharacter"
+        actor.texture = load("res://assets/illustrated/portrait_%s.webp" % _portrait_for_event(str(current["id"]))) as Texture2D
+        actor.custom_minimum_size = Vector2(70, 82)
+        actor.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        actor.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        feature_row.add_child(actor)
         frame.add_child(_label(str(current["text"]), 15, MUTED))
     if available.is_empty():
         body.add_child(_label("No new incidents are eligible. Advance the day to resolve the town's business.", 17, MUTED))
@@ -236,7 +245,8 @@ func _incidents(body: VBoxContainer) -> void:
         for rule in available:
             var id: String = str(rule["id"])
             var already: bool = id == str(sim.pending.get("target", "")) or id == str(sim.second_pending.get("target", ""))
-            var caption: String = "%s%s\n%s  |  %d%% chance" % ["[FILED]  " if already else "", str(rule["title"]), str(rule.get("place", "Oddford")), roundi(float(rule["chance"]) * 100.0)]
+            var marker: String = "FILED  •  " if already else "SELECTED  •  " if id == selected_event else ""
+            var caption: String = "%s%s\n%s  |  %d%% chance if attempted" % [marker, str(rule["title"]), str(rule.get("place", "Oddford")), roundi(float(rule["chance"]) * 100.0)]
             var btn := _button(caption, id == selected_event, 70)
             btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
             btn.name = "MobileIncident_" + id
@@ -246,7 +256,7 @@ func _incidents(body: VBoxContainer) -> void:
                 first_focus = btn
 
 func _stamps(body: VBoxContainer) -> void:
-    _section(body, "APPLY A MINISTRY STAMP", "FILING IS NOT RESOLVING. THE DAY RUNS ONLY WHEN YOU CHOOSE ADVANCE.")
+    _section(body, "2. CHOOSE A STAMP", "Pick how to influence the incident. The stamp does nothing until you file it.")
     var rule: Dictionary = sim.get_rule(selected_event)
     if rule.is_empty() or not sim._eligible(rule):
         var events: Array = sim.available_events()
@@ -268,19 +278,36 @@ func _stamps(body: VBoxContainer) -> void:
     else:
         body.add_child(_label("There are no eligible incidents. You may advance without a stamp.", 17, MUTED))
     var grid := GridContainer.new()
+    grid.name = "MobileStampSealGallery"
     grid.columns = 2
-    grid.add_theme_constant_override("h_separation", 7)
-    grid.add_theme_constant_override("v_separation", 7)
+    grid.add_theme_constant_override("h_separation", 8)
+    grid.add_theme_constant_override("v_separation", 8)
     body.add_child(grid)
     for id in Simulation.STAMP_ORDER:
         var stamp: Dictionary = Simulation.STAMPS[id]
-        var short: String = str(STAMP_LABELS[id])
-        var button := _button("%s\n%d Influence  /  +%d Strain" % [short, int(stamp["cost"]), maxi(1, int(stamp["strain"]) - int(sim.profile.get("audit", 0)))], id == selected_stamp, 74)
+        var is_selected: bool = id == selected_stamp
+        var tile := _panel(PAPER if is_selected else CREAM, BURGUNDY if is_selected else GOLD, 3 if is_selected else 1, 11)
+        tile.name = "MobileStampTile_" + id
+        tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        grid.add_child(tile)
+        var contents := VBoxContainer.new()
+        contents.add_theme_constant_override("separation", 2)
+        tile.add_child(contents)
+        var seal := TextureRect.new()
+        seal.name = "MobileSealArt_" + id
+        seal.texture = load("res://assets/illustrated/stamp_%s_small.webp" % id) as Texture2D
+        seal.custom_minimum_size = Vector2(64, 62)
+        seal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        seal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+        contents.add_child(seal)
+        var caption: String = "%s%s\n%d Influence / +%d Strain" % ["SELECTED: " if is_selected else "", str(STAMP_LABELS[id]), int(stamp["cost"]), maxi(1, int(stamp["strain"]) - int(sim.profile.get("audit", 0)))]
+        var button := _button(caption, is_selected, 64)
         button.name = "MobileStamp_" + id
         button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-        button.add_theme_font_size_override("font_size", 15)
+        button.add_theme_font_size_override("font_size", 14)
         button.pressed.connect(_select_stamp.bind(id))
-        grid.add_child(button)
+        contents.add_child(button)
     var active: Dictionary = Simulation.STAMPS[selected_stamp]
     var preview := _panel(CREAM, GOLD, 1, 11)
     preview.name = "MobileStampPreview"
@@ -302,19 +329,13 @@ func _stamps(body: VBoxContainer) -> void:
     var row := HBoxContainer.new()
     row.add_theme_constant_override("separation", 8)
     body.add_child(row)
-    var filed := _button("FILE STAMP", true, 55)
-    filed.name = "MobileFileStampButton"
-    filed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    filed.disabled = not _can_file()
-    filed.pressed.connect(_file_stamp)
-    row.add_child(filed)
-    var undo := _button("UNDO", false, 55)
-    undo.name = "MobileUndoButton"
-    undo.disabled = _filed_count() == 0
-    undo.pressed.connect(_undo)
-    row.add_child(undo)
-    var why := _button("WHY?", false, 55)
+    var change := _button("CHANGE INCIDENT", false, 54)
+    change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    change.pressed.connect(_change_page.bind("incidents"))
+    row.add_child(change)
+    var why := _button("WHY THIS INCIDENT?", false, 54)
     why.disabled = rule.is_empty()
+    why.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     why.pressed.connect(_show_evidence.bind(selected_event))
     row.add_child(why)
 
@@ -504,16 +525,42 @@ func _help(body: VBoxContainer) -> void:
     body.add_child(town)
 
 func _bottom_bar(parent: VBoxContainer) -> void:
-    if not feedback.is_empty():
+    # Keep the selected incident and filed stamp visible next to the real action.
+    # Never make players hunt for FILE inside a long scroll while ADVANCE is sticky.
+    if sim.status == "active" and page == "stamps":
+        var ribbon := _panel(PAPER, GOLD, 2, 8)
+        ribbon.name = "MobileFilingRibbon"
+        parent.add_child(ribbon)
+        var info := VBoxContainer.new()
+        info.add_theme_constant_override("separation", 2)
+        ribbon.add_child(info)
+        if _filed_count() == 0:
+            var target: Dictionary = sim.get_rule(selected_event)
+            info.add_child(_label("YOUR INCIDENT: " + str(target.get("title", "Choose an incident")), 15, INK, true))
+            info.add_child(_label("YOUR STAMP: %s  •  NOT YET FILED" % str(STAMP_LABELS[selected_stamp]), 14, BURGUNDY, true))
+            if not target.is_empty():
+                info.add_child(_label(_preview(target), 13, MUTED))
+        else:
+            info.add_child(_label("%d STAMP%s FILED FOR TODAY" % [_filed_count(), "" if _filed_count() == 1 else "S"], 14, GREEN, true))
+            for filing in [sim.pending, sim.second_pending]:
+                if filing.is_empty():
+                    continue
+                var rule: Dictionary = sim.get_rule(str(filing.get("target", "")))
+                var label: String = "%s → %s" % [str(Simulation.STAMPS[str(filing["stamp"])]["name"]), str(rule.get("title", "incident"))]
+                info.add_child(_label(label, 14, INK, true))
+    if not feedback.is_empty() and page != "stamps":
         var note := _label(feedback, 14, Color("#f5dba5"))
         note.name = "MobileFeedback"
         parent.add_child(note)
-    var footer := HBoxContainer.new()
+    # Full-width vertical actions prevent the secondary button collapsing to
+    # a zero-width strip and inflating both buttons to hundreds of pixels tall.
+    var footer: BoxContainer = VBoxContainer.new() if sim.status == "active" and page == "stamps" else HBoxContainer.new()
     footer.name = "MobileActionFooter"
+    footer.size_flags_vertical = Control.SIZE_SHRINK_END
     footer.add_theme_constant_override("separation", 8)
     parent.add_child(footer)
     if sim.status == "active" and page == "incidents":
-        var proceed := _button("CHOOSE STAMP", true, 60)
+        var proceed := _button("NEXT: CHOOSE A STAMP", true, 60)
         proceed.name = "MobileContinueToStamp"
         proceed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         proceed.disabled = selected_event.is_empty()
@@ -523,16 +570,44 @@ func _bottom_bar(parent: VBoxContainer) -> void:
         town.pressed.connect(_change_page.bind("town"))
         footer.add_child(town)
     elif sim.status == "active" and page == "stamps":
-        if sim.has_department("double_booking") and _filed_count() == 1:
-            var second := _button("SECOND INCIDENT", false, 60)
-            second.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-            second.pressed.connect(_change_page.bind("incidents"))
-            footer.add_child(second)
-        var advance := _button("ADVANCE DAY", true, 60)
-        advance.name = "MobileAdvanceDayButton"
-        advance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-        advance.pressed.connect(_advance_day)
-        footer.add_child(advance)
+        if confirm_unstamped_day and _filed_count() == 0:
+            var confirm := _button("CONFIRM: NO STAMP TODAY", true, 60)
+            confirm.name = "MobileConfirmEmptyDayButton"
+            confirm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            confirm.pressed.connect(_advance_day)
+            footer.add_child(confirm)
+            var cancel := _button("CANCEL", false, 44)
+            cancel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            cancel.pressed.connect(_cancel_unstamped_day)
+            footer.add_child(cancel)
+        elif _filed_count() == 0:
+            var file := _button("FILE %s ON THIS INCIDENT" % str(STAMP_LABELS[selected_stamp]), true, 62)
+            file.name = "MobileFileStampButton"
+            file.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            file.disabled = not _can_file()
+            file.pressed.connect(_file_stamp)
+            footer.add_child(file)
+            var skip := _button("LET THIS DAY PASS WITHOUT A STAMP", false, 44)
+            skip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            skip.name = "MobileSkipFilingButton"
+            skip.pressed.connect(_arm_unstamped_day)
+            footer.add_child(skip)
+        else:
+            var advance := _button("ADVANCE DAY  /  %d FILED" % _filed_count(), true, 64)
+            advance.name = "MobileAdvanceDayButton"
+            advance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            advance.pressed.connect(_advance_day)
+            footer.add_child(advance)
+            var undo := _button("UNDO FILED STAMP", false, 44)
+            undo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            undo.name = "MobileUndoButton"
+            undo.pressed.connect(_undo)
+            footer.add_child(undo)
+            if sim.has_department("double_booking") and _filed_count() == 1:
+                var second := _button("CHOOSE A SECOND INCIDENT", false, 52)
+                second.name = "MobileSecondIncidentButton"
+                second.pressed.connect(_change_page.bind("incidents"))
+                parent.add_child(second)
     elif page == "log":
         var back := _button("BACK TO INCIDENTS" if sim.status == "active" else "BACK TO RESULTS", true, 60)
         back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -605,11 +680,13 @@ func _preview(rule: Dictionary) -> String:
 
 func _select_event(id: String) -> void:
     selected_event = id
+    confirm_unstamped_day = false
     feedback = ""
     _render()
 
 func _select_stamp(id: String) -> void:
     selected_stamp = id
+    confirm_unstamped_day = false
     feedback = ""
     _render()
 
@@ -628,7 +705,9 @@ func _file_stamp() -> void:
         _render()
         return
     if sim.stage_stamp(selected_stamp, selected_event):
-        feedback = "Filed. Advance the day to see the consequences."
+        confirm_unstamped_day = false
+        var rule: Dictionary = sim.get_rule(selected_event)
+        feedback = "FILED: %s on %s." % [str(Simulation.STAMPS[selected_stamp]["name"]), str(rule.get("title", "incident"))]
         var audio := get_node_or_null("/root/MusicDirector")
         if audio != null:
             audio.call("play_stamp_effect")
@@ -638,12 +717,31 @@ func _file_stamp() -> void:
 
 func _undo() -> void:
     sim.clear_stamp()
+    confirm_unstamped_day = false
     feedback = "Today's filings have been cleared."
+    _render()
+
+func _arm_unstamped_day() -> void:
+    if _filed_count() > 0:
+        return
+    confirm_unstamped_day = true
+    feedback = "You will let Oddford run without an intervention."
+    _render()
+
+func _cancel_unstamped_day() -> void:
+    confirm_unstamped_day = false
+    feedback = ""
     _render()
 
 func _advance_day() -> void:
     if sim.status != "active":
         return
+    # No filing may resolve silently. The separate no-stamp button must
+    # explicitly arm and confirm an unstamped day.
+    if _filed_count() == 0 and not confirm_unstamped_day:
+        _arm_unstamped_day()
+        return
+    confirm_unstamped_day = false
     var old_count: int = sim.history.size()
     var day: int = sim.day
     var old_support: int = sim.support
@@ -698,6 +796,7 @@ func _start_case(id: String) -> void:
         return
     selected_event = ""
     selected_stamp = "nudge"
+    confirm_unstamped_day = false
     feedback = "New assignment accepted."
     page = "incidents"
     _render()
@@ -734,6 +833,18 @@ func _art(family: String, dimensions: Vector2) -> TextureRect:
     art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     art.mouse_filter = Control.MOUSE_FILTER_IGNORE
     return art
+
+func _portrait_for_event(id: String) -> String:
+    var key: String = id.to_lower()
+    if "bake" in key or "bread" in key or "sandwich" in key or "recipe" in key:
+        return "baker"
+    if "paper" in key or "press" in key or "news" in key or "camera" in key or "report" in key:
+        return "reporter"
+    if "mayor" in key or "election" in key or "vote" in key or "council" in key:
+        return "mayor"
+    if "post" in key or "letter" in key or "organize" in key:
+        return "organizer"
+    return "gerald"
 
 func _family(id: String) -> String:
     if "rain" in id or "fair" in id or "parade" in id or "calendar" in id:
@@ -773,6 +884,7 @@ func _button(value: String, emphasized: bool, minimum_height: int = 56) -> Butto
     var button := Button.new()
     button.text = value
     button.custom_minimum_size.y = minimum_height
+    button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     button.alignment = HORIZONTAL_ALIGNMENT_CENTER
     button.add_theme_font_size_override("font_size", 16)
