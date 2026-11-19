@@ -13,6 +13,25 @@ func _find(node: Node, name: String) -> Node:
         var match_node: Node = _find(child, name)
         if match_node != null: return match_node
     return null
+func _contrast_ratio(foreground: Color, background: Color) -> float:
+    var a: Color = foreground.srgb_to_linear()
+    var b: Color = background.srgb_to_linear()
+    var la: float = a.r * 0.2126 + a.g * 0.7152 + a.b * 0.0722
+    var lb: float = b.r * 0.2126 + b.g * 0.7152 + b.b * 0.0722
+    return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
+
+func _assert_readable_body(ui: Control, page_name: String) -> void:
+    var body: Node = _find(ui, "MobilePageBody")
+    _assert(body != null, page_name + " main page body exists")
+    if body == null:
+        return
+    for node in body.get_children():
+        if node is Label:
+            var label := node as Label
+            var color: Color = label.get_theme_color("font_color")
+            var caption: String = label.text.left(32)
+            _assert(_contrast_ratio(color, Color("#183239")) >= 4.5, page_name + " label contrast: " + caption)
+
 func _run_frame() -> void:
     await process_frame
     await process_frame
@@ -24,6 +43,22 @@ func _check_mobile() -> void:
     ui.sim = Simulation.new(1, false)
     ui.page = "incidents"
     ui._render()
+    await _run_frame()
+    _assert(not bool(ProjectSettings.get_setting("application/config/quit_on_go_back", true)), "Android Back does not automatically exit the game")
+    _assert_readable_body(ui, "incidents")
+    # Instruction screens must be readable against the dark page, not just
+    # structurally present in the Godot scene.
+    for screen in ["help", "tutorial", "stamps", "log", "town", "evidence"]:
+        ui._change_page(screen)
+        await _run_frame()
+        _assert_readable_body(ui, screen)
+    ui._change_page("help")
+    ui._handle_android_back()
+    _assert(ui.page == "incidents", "Android Back returns from Help to current case")
+    ui._change_page("stamps")
+    ui._handle_android_back()
+    _assert(ui.page == "incidents", "Android Back returns from Stamp Desk to incident choice")
+    ui._change_page("incidents")
     await _run_frame()
     _assert(_find(ui, "MobileSafeSurface") != null, "Portrait-safe layout exists")
     var content_scroll := _find(ui, "MobileContentScroll") as ScrollContainer
