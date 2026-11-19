@@ -519,9 +519,6 @@ func _tutorial(body: VBoxContainer) -> void:
     var button := _button("NEXT" if tutorial_step < 3 else "GO TO YOUR CASE", true, 60)
     button.pressed.connect(_next_tutorial)
     body.add_child(button)
-    var skip := _button("SKIP BRIEFING", false, 52)
-    skip.pressed.connect(_finish_tutorial)
-    body.add_child(skip)
 
 func _help(body: VBoxContainer) -> void:
     _section(body, "HOW TO FILE A COINCIDENCE", "YOUR TEN-SECOND MANUAL")
