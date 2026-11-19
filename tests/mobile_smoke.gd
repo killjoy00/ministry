@@ -93,5 +93,6 @@ func _check_mobile() -> void:
     if fails.is_empty():
         print("PASS: %d mobile gameplay and layout assertions" % count)
         quit(0)
+        return
     for error in fails: printerr("FAIL: " + error)
     quit(1)
