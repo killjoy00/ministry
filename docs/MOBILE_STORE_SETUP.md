@@ -1,53 +1,69 @@
-# Store handoff — The Ministry of Coincidences
+# Mobile store handoff — The Ministry of Coincidences
 
-## Identifiers (registered by publisher)
+**Mobile project:** `killjoy00/ministry`  
+**Central signing and store publishing:** `killjoy00/eztrivia`
+
+The Ministry repository owns the game, offline simulations, Godot export presets, and
+mobile QA. **EZTrivia owns the existing Apple Developer credentials, Android upload
+key, Google Play service account, and cross-repository publishing workflows.**
+Do not copy secrets into Ministry, generate new upload keys, or run independent
+Ministry signing workflows.
+
+## Registered app IDs
 - Display name: **The Ministry of Coincidences**
-- Google Play Android package: `org.killjoy00.ministry`
-- Apple bundle identifier: `org.killjoy00.ministry`
-- Apple Team ID: `3564X3VTDB` (reused from the existing EZTrivia Xcode configuration; verify it matches the team used to register this app)
-- Candidate release: version **0.1.0**, build/version code **1**. Increment before each new store upload.
-- Privacy policy (once merged to main): `https://github.com/killjoy00/ministry/blob/main/docs/MOBILE_PRIVACY.md`
+- Google Play package / Apple bundle ID: `org.killjoy00.ministry`
+- Apple Team ID: `3564X3VTDB` (already used by EZTrivia and StarRun)
+- Intended initial beta version: `0.1.0`; build numbers must increase per upload
+- Privacy text: [MOBILE_PRIVACY.md](MOBILE_PRIVACY.md)
 
-## Android: obtain a signed AAB without running local code
+## Release approach
 
-The CI debug APK is **not** a Google Play release. Google Play requires an AAB signed by a persistent **upload key**. The AAB workflow is `.github/workflows/mobile-play-aab.yml`.
+1. Merge Ministry's dependent feature PRs **#14 → #16 → #17 → #18** only after
+   the relevant CI checks are green. Never build/store-sign an unmerged feature
+   branch or an unreviewed commit.
+2. Pin the exact **Ministry main** commit SHA in EZTrivia's release request or
+   approved manual invocation. The central workflow verifies that the SHA is
+   an ancestor of Ministry main.
+3. For Android, use the **Ministry Play Internal** adapter in EZTrivia.
+   It checks the registered package ID, exports the `Android Play AAB` preset
+   in the checked-out Ministry source, signs using EZTrivia's existing
+   `ANDROID_UPLOAD_KEYSTORE_BASE64` and `ANDROID_UPLOAD_KEY_PASSWORD`,
+   and uses the existing `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` for **internal**
+   testing uploads only. No production changes.
+4. For iOS, use the **Ministry TestFlight** adapter in EZTrivia. It checks the
+   same immutable source SHA, exports the `iOS Xcode Project` Godot preset,
+   signs with the existing Apple Team ID and EZTrivia's
+   `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, and `APPLE_TEAM_ID`.
+   Its only store destination is TestFlight; Apple processing/beta review can
+   take additional time.
+5. Run phone acceptance: portrait, rotation, safe-area/notches, font sizes,
+   file/undo, second stamp when Double Booking is active, real causal links,
+   Causality Theater skip/replay, persistence after closing/reopening.
+6. Confirm the Play app has Google Play App Signing configured to accept the
+   existing shared **upload certificate** and that the existing Play service
+   account can access the new app. If either is unconfigured, that one-time
+   provider setting must be changed before store upload; no new credentials
+   need to be duplicated in Ministry.
 
-1. Use an existing safely stored Android upload keystore from your publishing setup, or generate **one new persistent keystore** with your usual signing provider. Enable Google Play App Signing. Back up the keystore, alias, and password outside GitHub. Do not use an ephemeral CI smoke keystore for Play.
-2. In the **ministry** GitHub repository, open **Settings → Secrets and variables → Actions → New repository secret**, then add:
-   - `MINISTRY_ANDROID_UPLOAD_KEYSTORE_BASE64`: the base64 contents of the keystore file, with no line breaks.
-   - `MINISTRY_ANDROID_UPLOAD_KEYSTORE_PASSWORD`: the keystore/key password.
-   - `MINISTRY_ANDROID_UPLOAD_KEY_ALIAS`: the keystore key alias.
-   The Godot exporter uses the same password for the keystore and contained key.
-3. Open **Actions → Google Play Android App Bundle → Run workflow**, choose the `mobile/android-ios-beta` branch while this PR is open, and run. The workflow refuses to produce a publishable AAB if any of the three secrets is missing.
-4. On success download the `ministry-google-play-aab-<run>` workflow artifact. Extract `ministry-play-upload.aab`.
-5. In **Google Play Console → The Ministry of Coincidences → Testing → Internal testing → Create new release**, upload that AAB. Review tester access and roll out to internal testers first.
-6. Confirm the Google Play package name and Play App Signing upload-certificate fingerprint match the registered app. Keep the same upload key for future updates.
+The `Android Debug APK` in Ministry CI is **QA-only**. The signed store AAB and
+TestFlight upload must originate in EZTrivia. The Android/iOS export presets
+stay in Ministry because they describe the app, not credentials.
 
-PR-triggered AAB smoke builds use a **one-time, throwaway key only to verify Gradle export**. They are not uploaded as production release artifacts and must never be sent to Play.
+## Suggested store copy
 
-## iOS: unsigned Xcode first, then TestFlight signing
-1. The existing iOS project export is `.github/workflows/mobile-ios.yml` (GitHub Actions requires an available macOS runner). It produces an **unsigned Xcode project**, not an IPA.
-2. Create or reuse an **App Store Connect API key** with appropriate application access. Store the `.p8` private key in GitHub Actions secrets; do not commit or paste it into an issue or chat. Existing related app workflows use secret names `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, `APPLE_TEAM_ID`. Secrets are scoped per repository unless deliberately shared at organization level.
-3. Once the mobile changes and their prerequisites have been merged into `main`, open **GitHub → Actions → Ministry iOS TestFlight upload → Run workflow**. The manual `.github/workflows/mobile-testflight.yml` workflow exports the Godot Xcode project, archives with the registered Team ID, and attempts Apple's managed distribution signing/upload using these four GitHub Secrets. This signing/upload workflow is prepared but has **not yet run successfully or produced an IPA**; resolve any Xcode or account errors from the run logs.
-4. In **App Store Connect → The Ministry of Coincidences → TestFlight**, add internal testers once the uploaded build has processed. An unsigned Xcode ZIP is not an installable app.
-
-## Store metadata draft
-
-**Subtitle/short description:** Small coincidences. Outrageous consequences.
+**Short description:** Small coincidences. Outrageous consequences.
 
 **Description:**
-`The universe has paperwork. In The Ministry of Coincidences, you're the clerk who files it. Choose an unlikely incident, stamp it with a subtle intervention, and watch Oddford respond. A misplaced letter, a wandering goose, or a ruined afternoon can set off a wonderfully unreasonable chain of events. Solve four escalating assignments, discover new departments, and see what really caused every twist. Offline, turn-based, and built for short sessions.`
 
-**Category suggestion:** Games; strategy/puzzle (select the closest actual options the stores offer).
+The universe has paperwork. In The Ministry of Coincidences, you're the clerk
+who files it. Choose an unlikely incident, stamp it with a subtle intervention,
+and watch Oddford respond. A misplaced letter, a wandering goose, or a ruined
+afternoon can set off a wonderfully unreasonable chain of events. Solve four
+escalating assignments, discover new departments, and see what really caused
+every twist. Offline, turn-based, and built for short sessions.
 
-**Privacy/data safety, based on the current source:** No developer-collected personal data, no ads, no account, no networking or analytics. Verify against the **final exported** app's manifest and any future SDK changes.
+**Categories:** Games / Strategy or Puzzle (choose the closest options offered).
 
-## Release gates
-- GitHub unit/balance/mobile suites green
-- Android debug APK verified and tested on a physical Android phone
-- Android AAB signed with persistent key and uploaded to Internal testing
-- iOS Xcode export verified on macOS runner
-- iOS IPA signed under the registered Apple Developer Team and uploaded to TestFlight
-- Physical iPhone and iPad touch, orientation, scroll and notch testing
-- Screenshot, accessibility, age-rating, copyright/AI-assisted art disclosures, and store declarations reviewed by publisher
-- Merge prerequisite PRs #14, #16, #17 and then #18 after checks
+**Privacy / data safety (current code):** No accounts, advertising,
+analytics, location collection, or network activity by the game. Verify the
+final exported binary and store questions before submission.
