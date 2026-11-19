@@ -16,6 +16,11 @@ const GOLD = Color("#c49a58")
 const BURGUNDY = Color("#7e454c")
 const GREEN = Color("#426e60")
 const MUTED = Color("#6c6a60")
+# Light ink for text directly on the dark page, unlike cream-paper cards.
+const LIGHT_TEXT = Color("#f5e8ca")
+const LIGHT_SUB = Color("#d5e0d3")
+const LIGHT_ACCENT = Color("#f0ca90")
+const LIGHT_SUCCESS = Color("#b6d9c4")
 const TUTORIAL_PATH = "user://ministry_briefing.json"
 const STAMP_LABELS = {"nudge":"NUDGE", "misfile":"MISFILE", "reschedule":"DELAY", "domino":"DOMINO"}
 
@@ -50,16 +55,20 @@ func _size_changed() -> void:
 
 func _notification(what: int) -> void:
     if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-        if theater != null:
-            _close_theater()
-        elif ["evidence", "town", "help", "tutorial"].has(page):
-            _change_page("incidents")
-        elif ["ministry", "assignments"].has(page):
-            _change_page("results")
-        elif page == "stamps":
-            _change_page("incidents")
-        else:
-            _change_page("incidents")
+        _handle_android_back()
+
+func _handle_android_back() -> void:
+    # Android Back navigates the case; it must not kill the app by default.
+    if theater != null:
+        _close_theater()
+    elif page == "tutorial":
+        _finish_tutorial()
+    elif ["evidence", "town", "help", "stamps", "log"].has(page):
+        _change_page("incidents" if sim.status == "active" else "results")
+    elif ["ministry", "assignments"].has(page):
+        _change_page("results")
+    else:
+        _change_page("incidents" if sim.status == "active" else "results")
 
 func _render() -> void:
     if sim == null:
@@ -239,9 +248,9 @@ func _incidents(body: VBoxContainer) -> void:
         feature_row.add_child(actor)
         frame.add_child(_label(str(current["text"]), 15, MUTED))
     if available.is_empty():
-        body.add_child(_label("No new incidents are eligible. Advance the day to resolve the town's business.", 17, MUTED))
+        body.add_child(_label("No new incidents are eligible. Advance the day to resolve the town's business.", 17, LIGHT_SUB))
     else:
-        body.add_child(_label("AVAILABLE OPPORTUNITIES  /  TAP TO SELECT", 14, BURGUNDY, true))
+        body.add_child(_label("AVAILABLE OPPORTUNITIES  /  TAP TO SELECT", 14, LIGHT_ACCENT, true))
         for rule in available:
             var id: String = str(rule["id"])
             var already: bool = id == str(sim.pending.get("target", "")) or id == str(sim.second_pending.get("target", ""))
@@ -276,7 +285,7 @@ func _stamps(body: VBoxContainer) -> void:
         text.add_child(_label(str(rule["title"]), 19, INK, true))
         text.add_child(_label(str(rule.get("place", "Oddford")), 14, MUTED))
     else:
-        body.add_child(_label("There are no eligible incidents. You may advance without a stamp.", 17, MUTED))
+        body.add_child(_label("There are no eligible incidents. You may advance without a stamp.", 17, LIGHT_SUB))
     var grid := GridContainer.new()
     grid.name = "MobileStampSealGallery"
     grid.columns = 2
@@ -343,12 +352,12 @@ func _log(body: VBoxContainer) -> void:
     _section(body, "THE OFFICIAL CHRONICLE", "WHAT HAPPENED  /  AND WHY")
     var summaries: Array = sim.history_summary(40)
     if summaries.is_empty():
-        body.add_child(_label("No incidents yet. The stationery is immaculate.", 17, MUTED))
+        body.add_child(_label("No incidents yet. The stationery is immaculate.", 17, LIGHT_SUB))
     for entry in summaries:
         var caption: String = "DAY %d  /  %s\n%s" % [int(entry["day"]), str(entry["title"]), str(entry.get("because", ""))]
         var id: String = str(entry.get("id", ""))
         if sim.get_rule(id).is_empty():
-            body.add_child(_label(caption, 15, MUTED))
+            body.add_child(_label(caption, 15, LIGHT_SUB))
         else:
             var btn := _button(caption, false, 66)
             btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -367,24 +376,24 @@ func _evidence(body: VBoxContainer) -> void:
     card.add_child(text)
     text.add_child(_label(str(info["description"]), 17, INK))
     text.add_child(_label("NATURAL CHANCE: %d%%  /  %s" % [roundi(float(info["chance"])*100.0), "OCCURRED" if bool(info["occurred"]) else "POSSIBLE, NOT CONFIRMED"], 14, GREEN if bool(info["occurred"]) else BURGUNDY, true))
-    body.add_child(_label("REQUIRED CONDITIONS", 16, BURGUNDY, true))
+    body.add_child(_label("REQUIRED CONDITIONS", 16, LIGHT_ACCENT, true))
     if (info["conditions"] as Array).is_empty():
-        body.add_child(_label("No prerequisites. This can start a chain.", 15, MUTED))
+        body.add_child(_label("No prerequisites. This can start a chain.", 15, LIGHT_SUB))
     for requirement in info["conditions"]:
         var condition: Dictionary = requirement
         var line: String = "%s  %s [%s]" % ["OK" if bool(condition["met"]) else "MISSING", str(condition["fact"]), str(condition["kind"])]
         if not str(condition.get("source", "")).is_empty():
             line += " - from " + str(condition["source"])
-        body.add_child(_label(line, 15, GREEN if bool(condition["met"]) else MUTED))
-    body.add_child(_label("POSSIBLE CONSEQUENCES  /  NOT GUARANTEED", 16, BURGUNDY, true))
+        body.add_child(_label(line, 15, LIGHT_SUCCESS if bool(condition["met"]) else LIGHT_SUB))
+    body.add_child(_label("POSSIBLE CONSEQUENCES  /  NOT GUARANTEED", 16, LIGHT_ACCENT, true))
     for output in info["outcomes"]:
-        body.add_child(_label("- " + str(output), 15, INK))
+        body.add_child(_label("- " + str(output), 15, LIGHT_SUB))
     if not (info["alternative"] as Array).is_empty():
-        body.add_child(_label("MISFILE WOULD REPLACE THESE WITH:", 15, BURGUNDY, true))
+        body.add_child(_label("MISFILE WOULD REPLACE THESE WITH:", 15, LIGHT_ACCENT, true))
         for output in info["alternative"]:
-            body.add_child(_label("- " + str(output), 15, INK))
+            body.add_child(_label("- " + str(output), 15, LIGHT_SUB))
     var branches: Array = info["branches"]
-    body.add_child(_label("MAY HELP ENABLE %d OTHER INCIDENTS" % branches.size(), 16, BURGUNDY, true))
+    body.add_child(_label("MAY HELP ENABLE %d OTHER INCIDENTS" % branches.size(), 16, LIGHT_ACCENT, true))
     for j in range(mini(branches.size(), 16)):
         var downstream: Dictionary = branches[j]
         var desc: String = "%s  /  %s route" % [str(downstream["title"]), str(downstream["route"])]
@@ -395,9 +404,9 @@ func _evidence(body: VBoxContainer) -> void:
         btn.pressed.connect(_show_evidence.bind(str(downstream["id"])))
         body.add_child(btn)
     if bool(info["occurred"]):
-        body.add_child(_label("CONFIRMED PARENT EVENTS", 16, GREEN, true))
+        body.add_child(_label("CONFIRMED PARENT EVENTS", 16, LIGHT_SUCCESS, true))
         for parent in info["parents"]:
-            body.add_child(_label("- " + str(parent["title"]), 15, GREEN))
+            body.add_child(_label("- " + str(parent["title"]), 15, LIGHT_SUCCESS))
 
 func _town(body: VBoxContainer) -> void:
     _section(body, "A WINDOW ON ODDFORD", "THIS TOWN IS OPERATING WITHOUT ADULT SUPERVISION")
@@ -409,7 +418,7 @@ func _town(body: VBoxContainer) -> void:
     art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
     panel.add_child(art)
-    body.add_child(_label("The town responds to real recorded incidents. Inspect the Chronicle to see what actually happened.", 16, MUTED))
+    body.add_child(_label("The town responds to real recorded incidents. Inspect the Chronicle to see what actually happened.", 16, LIGHT_SUB))
     var latest: Array = sim.history_summary(8)
     for entry in latest:
         var rule: Dictionary = sim.get_rule(str(entry.get("id", "")))
@@ -430,7 +439,7 @@ func _results(body: VBoxContainer) -> void:
     portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     body.add_child(portrait)
-    body.add_child(_label("MERIT AVAILABLE: %d   /   CASES FILED: %d" % [int(sim.profile["merit"]), int(sim.profile["completed"])], 17, GREEN, true))
+    body.add_child(_label("MERIT AVAILABLE: %d   /   CASES FILED: %d" % [int(sim.profile["merit"]), int(sim.profile["completed"])], 17, LIGHT_SUCCESS, true))
     for kind in ["desk", "ink", "audit"]:
         var price: int = sim.upgrade_cost(kind)
         var level: int = int(sim.profile[kind])
@@ -448,7 +457,7 @@ func _results(body: VBoxContainer) -> void:
 
 func _ministry(body: VBoxContainer) -> void:
     _section(body, "THE MINISTRY", "DEPARTMENT LOADOUT  /  BUY AND ASSIGN BETWEEN CASES")
-    body.add_child(_label("MERIT %d  /  %d OF %d SLOTS ASSIGNED" % [int(sim.profile["merit"]), (sim.profile["equipped"] as Array).size(), sim.department_slots()], 16, GREEN, true))
+    body.add_child(_label("MERIT %d  /  %d OF %d SLOTS ASSIGNED" % [int(sim.profile["merit"]), (sim.profile["equipped"] as Array).size(), sim.department_slots()], 16, LIGHT_SUCCESS, true))
     for id in Departments.ORDER:
         var info: Dictionary = Departments.get_department(id)
         var owned: bool = sim.department_owned(id)
@@ -496,14 +505,14 @@ func _tutorial(body: VBoxContainer) -> void:
         "Other incidents occur without your approval. New facts can start a cascade. Stamps don't guarantee every outcome.",
         "WHY? shows prerequisites and possible results. The Chronicle records what really happened. Nothing in this practice uses your real resources."
     ]
-    body.add_child(_label("FORM %d OF 4" % (tutorial_step + 1), 15, BURGUNDY, true))
-    body.add_child(_label(titles[tutorial_step], 23, INK, true))
-    body.add_child(_label(text[tutorial_step], 18, MUTED))
+    body.add_child(_label("FORM %d OF 4" % (tutorial_step + 1), 15, LIGHT_ACCENT, true))
+    body.add_child(_label(titles[tutorial_step], 23, LIGHT_TEXT, true))
+    body.add_child(_label(text[tutorial_step], 18, LIGHT_SUB))
     if tutorial_step == 3 and practice != null:
-        body.add_child(_label("WHAT THE SEPARATE PRACTICE CASE RECORDED", 15, GREEN, true))
+        body.add_child(_label("WHAT THE SEPARATE PRACTICE CASE RECORDED", 15, LIGHT_SUCCESS, true))
         for event in practice.history:
             if not (event.get("facts", []) as Array).is_empty():
-                body.add_child(_label("- " + str(event["title"]), 15, INK))
+                body.add_child(_label("- " + str(event["title"]), 15, LIGHT_SUB))
     var button := _button("NEXT" if tutorial_step < 3 else "GO TO YOUR CASE", true, 60)
     button.pressed.connect(_next_tutorial)
     body.add_child(button)
@@ -513,10 +522,10 @@ func _tutorial(body: VBoxContainer) -> void:
 
 func _help(body: VBoxContainer) -> void:
     _section(body, "HOW TO FILE A COINCIDENCE", "YOUR TEN-SECOND MANUAL")
-    body.add_child(_label("1. Choose up to 1 incident to influence (2 with Double Booking). Other incidents still happen.", 17, INK))
-    body.add_child(_label("2. Choose Nudge, Misfile, Delay, or Domino, then FILE. This only queues your action.", 17, INK))
-    body.add_child(_label("3. Advance the day. Watch Causality Theater, then investigate genuine links in the Chronicle.", 17, INK))
-    body.add_child(_label("4. Win or lose, earn Merit to buy permanent causal departments after the case.", 17, INK))
+    body.add_child(_label("1. Choose up to 1 incident to influence (2 with Double Booking). Other incidents still happen.", 17, LIGHT_SUB))
+    body.add_child(_label("2. Choose Nudge, Misfile, Delay, or Domino, then FILE. This only queues your action.", 17, LIGHT_SUB))
+    body.add_child(_label("3. Advance the day. Watch Causality Theater, then investigate genuine links in the Chronicle.", 17, LIGHT_SUB))
+    body.add_child(_label("4. Win or lose, earn Merit to buy permanent causal departments after the case.", 17, LIGHT_SUB))
     var tutorial := _button("REPLAY MISS QUILL'S BRIEFING", true, 54)
     tutorial.pressed.connect(_change_page.bind("tutorial"))
     body.add_child(tutorial)
