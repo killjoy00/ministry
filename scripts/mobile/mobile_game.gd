@@ -711,42 +711,106 @@ func _results(body: VBoxContainer) -> void:
     cases.pressed.connect(_change_page.bind("assignments"))
     body.add_child(cases)
 
+
 func _ministry(body: VBoxContainer) -> void:
-    _section(body, "THE MINISTRY", "DEPARTMENT LOADOUT  /  BUY AND ASSIGN BETWEEN CASES")
-    body.add_child(_label("MERIT %d  /  %d OF %d SLOTS ASSIGNED" % [int(sim.profile["merit"]), (sim.profile["equipped"] as Array).size(), sim.department_slots()], 16, LIGHT_SUCCESS, true))
-    for id in Departments.ORDER:
-        var info: Dictionary = Departments.get_department(id)
+    _section(body, "THE MINISTRY / ORGANIZATIONAL CHART", "LICENSE OFFICES PERMANENTLY  /  ASSIGN THEM BETWEEN CASES")
+    var masthead := _panel(PAPER, GOLD, 2, 10)
+    body.add_child(masthead)
+    var heading := HBoxContainer.new()
+    heading.add_theme_constant_override("separation", 10)
+    masthead.add_child(heading)
+    var seal := TextureRect.new()
+    seal.texture = load("res://assets/seal.svg") as Texture2D
+    seal.custom_minimum_size = Vector2(62, 62)
+    seal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    seal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    heading.add_child(seal)
+    var info := VBoxContainer.new()
+    info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    heading.add_child(info)
+    info.add_child(_label(sim.rank_title(), 17, BURGUNDY, true))
+    info.add_child(_label("%d MERIT  /  %d OF %d OFFICES ASSIGNED" % [int(sim.profile["merit"]), (sim.profile["equipped"] as Array).size(), sim.department_slots()], 14, GREEN, true))
+    body.add_child(_label("Effects are locked when a case starts. Only selected offices run; shared automatic approvals are limited.", 15, LIGHT_SUB))
+    var faces: Array[String] = ["clerk", "reporter", "mayor", "organizer", "clerk", "reporter", "baker", "reporter", "mayor", "gerald", "organizer", "gerald"]
+    for index in range(Departments.ORDER.size()):
+        var id: String = str(Departments.ORDER[index])
+        var spec: Dictionary = Departments.get_department(id)
         var owned: bool = sim.department_owned(id)
         var equipped: bool = (sim.profile["equipped"] as Array).has(id)
-        var status: String = "ASSIGNED" if equipped else "OWNED" if owned else "%d MERIT  /  %d CASES" % [int(info["cost"]), int(info["cases"])]
-        var panel := _panel(CREAM, GOLD if equipped else MUTED, 2 if equipped else 1, 9)
+        var active: bool = sim.has_department(id)
+        var panel := _panel(CREAM if owned else PAPER, GREEN if equipped else GOLD, 3 if equipped else 1, 10)
+        panel.name = "MobileDepartmentDossier_" + id
         body.add_child(panel)
         var col := VBoxContainer.new()
+        col.add_theme_constant_override("separation", 4)
         panel.add_child(col)
-        col.add_child(_label(str(info["name"]), 18, INK, true))
-        col.add_child(_label(str(info["detail"]), 14, MUTED))
-        var action := _button(status + ("  /  REMOVE" if equipped else "  /  ASSIGN" if owned else "  /  BUY"), equipped, 50)
-        action.disabled = sim.status == "active" or (not owned and (int(sim.profile["completed"]) < int(info["cases"]) or int(sim.profile["merit"]) < int(info["cost"]))) or (owned and not equipped and (sim.profile["equipped"] as Array).size() >= sim.department_slots())
+        var row := HBoxContainer.new()
+        row.add_theme_constant_override("separation", 9)
+        col.add_child(row)
+        var portrait := TextureRect.new()
+        portrait.name = "MobileDepartmentPortrait_" + id
+        portrait.texture = load("res://assets/illustrated/portrait_%s.webp" % faces[index]) as Texture2D
+        portrait.custom_minimum_size = Vector2(81, 87)
+        portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        row.add_child(portrait)
+        var detail := VBoxContainer.new()
+        detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        row.add_child(detail)
+        detail.add_child(_label(str(spec["name"]), 18, INK, true))
+        detail.add_child(_label("ACTIVE IN THIS CASE" if active else "ASSIGNED TO NEXT CASE" if equipped else "LICENSED / STANDBY" if owned else "UNLICENSED", 13, GREEN if active or equipped else BURGUNDY, true))
+        detail.add_child(_label(str(spec["detail"]), 14, MUTED))
+        if not owned:
+            detail.add_child(_label("%d MERIT  /  FILE %d CASES TO UNLOCK" % [int(spec["cost"]), int(spec["cases"])], 13, BURGUNDY))
+        var action_caption := "REMOVE OFFICE" if equipped else "ASSIGN OFFICE" if owned else "BUY DEPARTMENT LICENSE"
+        var action := _button(action_caption, equipped, 53)
+        action.name = "MobileDepartmentAction_" + id
+        action.disabled = sim.status == "active" or (not owned and (int(sim.profile["completed"]) < int(spec["cases"]) or int(sim.profile["merit"]) < int(spec["cost"]))) or (owned and not equipped and (sim.profile["equipped"] as Array).size() >= sim.department_slots())
         action.pressed.connect(_department_action.bind(id))
         col.add_child(action)
 
 func _assignments(body: VBoxContainer) -> void:
-    _section(body, "CHOOSE YOUR NEXT CASE", "ONE MINISTRY  /  FOUR UNREASONABLE ASSIGNMENTS")
+    _section(body, "THE MINISTRY / INCOMING ASSIGNMENTS", "FOUR REAL CASE FILES  /  SELECT YOUR NEXT SHIFT")
+    body.add_child(_label("Your selected departments and upgrades are locked into the next case when it begins.", 15, LIGHT_SUB))
     for id in Cases.ORDER:
-        var details: Dictionary = Cases.description(id)
-        var unlocked: bool = sim.case_unlocked(id)
-        var panel := _panel(CREAM, GOLD, 1, 10)
+        var details: Dictionary = Cases.description(str(id))
+        var unlocked: bool = sim.case_unlocked(str(id))
+        var panel := _panel(CREAM, GREEN if unlocked else GOLD, 2 if unlocked else 1, 11)
+        panel.name = "MobileAssignmentDossier_" + str(id)
         body.add_child(panel)
         var col := VBoxContainer.new()
+        col.add_theme_constant_override("separation", 7)
         panel.add_child(col)
-        col.add_child(_label(str(details["title"]), 19, INK, true))
+        col.add_child(_label(str(details["title"]).to_upper(), 20, INK, true))
         col.add_child(_label(str(details["brief"]), 15, MUTED))
-        var btn := _button("START CASE  /  %d DAYS" % int(details["deadline"]) if unlocked else "LOCKED  /  FILE %d CASES" % int(details["unlock_cases"]), unlocked, 54)
-        btn.disabled = not unlocked or sim.status == "active"
-        btn.pressed.connect(_start_case.bind(str(id)))
-        col.add_child(btn)
-
-
+        var story := HBoxContainer.new()
+        story.add_theme_constant_override("separation", 9)
+        col.add_child(story)
+        var portrait := TextureRect.new()
+        portrait.name = "MobileAssignmentPortrait_" + str(id)
+        portrait.texture = load("res://assets/illustrated/portrait_%s.webp" % str(details["portrait"])) as Texture2D
+        portrait.custom_minimum_size = Vector2(95, 107)
+        portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        story.add_child(portrait)
+        var plan := VBoxContainer.new()
+        plan.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        story.add_child(plan)
+        plan.add_child(_label("%s  /  %d DAYS" % [str(details["difficulty"]), int(details["deadline"])], 14, BURGUNDY, true))
+        plan.add_child(_label("MUST COMPLETE: " + ", ".join(PackedStringArray(details["requirement_labels"])), 14, MUTED))
+        plan.add_child(_label("+%d BONUS MERIT ON SUCCESS" % int(details["merit_bonus"]), 14, GREEN, true))
+        var illustration := TextureRect.new()
+        illustration.name = "MobileAssignmentIllustration_" + str(id)
+        illustration.texture = load("res://assets/illustrated/%s.webp" % str(details["illustration"])) as Texture2D
+        illustration.custom_minimum_size.y = 120
+        illustration.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        illustration.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+        col.add_child(illustration)
+        var start := _button("START CASE" if unlocked else "LOCKED  /  FILE %d CASES TO UNLOCK" % int(details["unlock_cases"]), unlocked, 57)
+        start.name = "MobileAssignmentChoose_" + str(id)
+        start.disabled = not unlocked or sim.status == "active"
+        start.pressed.connect(_start_case.bind(str(id)))
+        col.add_child(start)
 func _tutorial(body: VBoxContainer) -> void:
     _section(body, "MISS QUILL'S FIRST-DAY BRIEFING", "FOUR ACTUAL PRACTICE ACTIONS  /  YOUR CASE AND MERIT ARE UNTOUCHED")
     var row := HBoxContainer.new()
