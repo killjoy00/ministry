@@ -8,7 +8,7 @@ save, or network permission has been added.
 
 ## Mobile interaction
 
-- Portrait-first phone interface; resizable center column on tablets/rotation.
+- Portrait-locked handset interface in this beta, with a centered, width-aware column on tablets. Android/iOS device rotation is not enabled yet; simulated orientation/resolution changes are covered by headless tests.
 - Incident selection, four stamp choices, Influence/Strain and odds preview,
   WHY? / evidence inspection, full Chronicle, town view, and optional tutorial.
 - File up to **one** incident, or **two distinct** incidents with Double Booking,
