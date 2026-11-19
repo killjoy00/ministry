@@ -550,8 +550,11 @@ func _bottom_bar(parent: VBoxContainer) -> void:
         var note := _label(feedback, 14, Color("#f5dba5"))
         note.name = "MobileFeedback"
         parent.add_child(note)
-    var footer := HBoxContainer.new()
+    # Full-width vertical actions prevent the secondary button collapsing to
+    # a zero-width strip and inflating both buttons to hundreds of pixels tall.
+    var footer: BoxContainer = VBoxContainer.new() if sim.status == "active" and page == "stamps" else HBoxContainer.new()
     footer.name = "MobileActionFooter"
+    footer.size_flags_vertical = Control.SIZE_SHRINK_END
     footer.add_theme_constant_override("separation", 8)
     parent.add_child(footer)
     if sim.status == "active" and page == "incidents":
@@ -571,17 +574,19 @@ func _bottom_bar(parent: VBoxContainer) -> void:
             confirm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
             confirm.pressed.connect(_advance_day)
             footer.add_child(confirm)
-            var cancel := _button("CANCEL", false, 60)
+            var cancel := _button("CANCEL", false, 44)
+            cancel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
             cancel.pressed.connect(_cancel_unstamped_day)
             footer.add_child(cancel)
         elif _filed_count() == 0:
-            var file := _button("FILE %s ON THIS INCIDENT" % str(STAMP_LABELS[selected_stamp]), true, 64)
+            var file := _button("FILE %s ON THIS INCIDENT" % str(STAMP_LABELS[selected_stamp]), true, 62)
             file.name = "MobileFileStampButton"
             file.size_flags_horizontal = Control.SIZE_EXPAND_FILL
             file.disabled = not _can_file()
             file.pressed.connect(_file_stamp)
             footer.add_child(file)
-            var skip := _button("NO STAMP TODAY", false, 64)
+            var skip := _button("LET THIS DAY PASS WITHOUT A STAMP", false, 44)
+            skip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
             skip.name = "MobileSkipFilingButton"
             skip.pressed.connect(_arm_unstamped_day)
             footer.add_child(skip)
@@ -591,7 +596,8 @@ func _bottom_bar(parent: VBoxContainer) -> void:
             advance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
             advance.pressed.connect(_advance_day)
             footer.add_child(advance)
-            var undo := _button("UNDO", false, 64)
+            var undo := _button("UNDO FILED STAMP", false, 44)
+            undo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
             undo.name = "MobileUndoButton"
             undo.pressed.connect(_undo)
             footer.add_child(undo)
@@ -876,6 +882,7 @@ func _button(value: String, emphasized: bool, minimum_height: int = 56) -> Butto
     var button := Button.new()
     button.text = value
     button.custom_minimum_size.y = minimum_height
+    button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
     button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     button.alignment = HORIZONTAL_ALIGNMENT_CENTER
     button.add_theme_font_size_override("font_size", 16)
