@@ -81,12 +81,15 @@ adb shell input keyevent KEYCODE_BACK
 sleep 3
 alive
 capture "02-back-to-incidents"
-# Follow actual player actions, using on-screen footer positions.
-tap_percent 91
+# Real Android 720x1600 screenshot inspection: the first "NEXT" action
+# spans y1330-1420 (center ~1376 = 86%), NOT 91% (empty safe margin).
+# Stamps screen "FILE NUDGE" sits at y1287-1375 (~83%), while the
+# secondary "NO STAMP" action sits below it (88% must never be used).
+tap_percent 86
 capture "03-choose-stamp"
-tap_percent 88
+tap_percent 83
 capture "04-stamp-filed"
-tap_percent 88
+tap_percent 83
 capture "05-causality-theater"
 # These are different actual game screens. Identical screenshots mean the
 # supposed taps did not reach the UI; screenshot filesize alone can lie.
