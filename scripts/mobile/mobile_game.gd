@@ -131,10 +131,6 @@ func _render() -> void:
     scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
     scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
     scroll.scroll_deadzone = 8
-    # A real-device smoke-test marker, emitted ONLY by Android debug builds.
-    # Screenshot deltas alone can pass if a swipe accidentally presses a card.
-    if OS.has_feature("android") and OS.is_debug_build():
-        scroll.get_v_scroll_bar().value_changed.connect(_debug_native_scroll.bind(page))
     # Touch focus must not jump the viewport back to a focused incident card.
     scroll.follow_focus = false
     surface.add_child(scroll)
@@ -167,10 +163,6 @@ func _render() -> void:
     _rendered_page = page
     if restore_offset > 0:
         _restore_scroll_position(scroll, page, restore_offset)
-
-func _debug_native_scroll(offset: float, screen: String) -> void:
-    if offset >= 30.0:
-        print("MINISTRY_NATIVE_SCROLL page=%s offset=%d" % [screen, roundi(offset)])
 
 func _enable_touch_scroll(node: Node) -> void:
     for child in node.get_children():
