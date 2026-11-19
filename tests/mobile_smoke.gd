@@ -149,6 +149,18 @@ func _check_mobile() -> void:
     _assert(_find(ui, "MobileTownWitnessDocket") != null, "Town has a location-specific incident docket")
     for district in ["TownHall", "Bakery", "PostOffice", "HighStreet", "PublicGardens", "ParadeHall"]:
         _assert(_find(ui, "MobileTownLocation" + district) != null, "Town district is selectable: " + district)
+        _assert(_find(ui, "MobileTownPin_" + district) != null, "Town map has an illustrated touch hotspot: " + district)
+    var replay := _find(ui, "MobileTownReplayButton") as Button
+    _assert(replay != null and not replay.disabled, "Recorded days can be replayed through the same theater")
+    ui._open_town_replay()
+    _assert(ui.theater != null and ui.theater.historical_replay, "Archived replay displays recorded simulation events with historical mode")
+    if ui.theater != null:
+        var count := ui.theater.recorded.size()
+        _assert(count > 0, "Historical replay has real incident records")
+        ui.theater.call("_finish")
+        var archival := _find(ui.theater, "MobileDailySummary") as Label
+        _assert(archival != null and archival.text.contains("ORIGINAL CHRONICLE"), "Historical replay never invents old stamp or Strain data")
+        ui._close_theater()
     ui._select_town_location("Bakery")
     _assert(ui.selected_town_location == "Bakery", "Changing a district updates the selected local office")
     ui._change_page("cast")
