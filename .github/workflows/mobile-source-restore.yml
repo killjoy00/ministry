@@ -43,7 +43,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/mobile scenes/mobile_main.tscn tests/mobile_smoke.gd project.godot export_presets.cfg docs/MOBILE_PORT.md .github/workflows/mobile-builds.yml .github/workflows/mobile-ios.yml tools/generate_mobile_icons.py assets/mobile
+          git add scripts/mobile scenes/mobile_main.tscn tests/mobile_smoke.gd project.godot export_presets.cfg docs/MOBILE_PORT.md tools/generate_mobile_icons.py assets/mobile
           if git diff --cached --quiet; then
             echo "Mobile source already present."
           else
