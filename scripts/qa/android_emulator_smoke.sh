@@ -81,12 +81,28 @@ adb shell input keyevent KEYCODE_BACK
 sleep 3
 alive
 capture "02-back-to-incidents"
+# The native touchscreen must SCROLL when dragged from an incident card.
+# Previously buttons/panels consumed the touch gesture, leaving the list fixed.
+adb shell input swipe "$((width / 2))" "$((height * 67 / 100))" "$((width / 2))" "$((height * 33 / 100))" 530
+sleep 2
+capture "02a-incidents-after-touch-scroll"
+if cmp -s "$out/02-back-to-incidents.png" "$out/02a-incidents-after-touch-scroll.png"; then
+  echo "::error::Incident list did not respond to a real Android touch swipe"
+  exit 1
+fi
 # Real Android 720x1600 screenshot inspection: the first "NEXT" action
 # spans y1330-1420 (center ~1376 = 86%), NOT 91% (empty safe margin).
 # Stamps screen "FILE NUDGE" sits at y1287-1375 (~83%), while the
 # secondary "NO STAMP" action sits below it (88% must never be used).
 tap_percent 86
 capture "03-choose-stamp"
+adb shell input swipe "$((width / 2))" "$((height * 66 / 100))" "$((width / 2))" "$((height * 34 / 100))" 530
+sleep 2
+capture "03a-stamps-after-touch-scroll"
+if cmp -s "$out/03-choose-stamp.png" "$out/03a-stamps-after-touch-scroll.png"; then
+  echo "::error::Stamp gallery did not respond to a real Android touch swipe"
+  exit 1
+fi
 tap_percent 83
 capture "04-stamp-filed"
 tap_percent 83
