@@ -7,6 +7,9 @@ mkdir -p "$out"
 test -s build/ministry-android-debug.apk
 adb install -r build/ministry-android-debug.apk
 adb logcat -c
+# A lighter device framebuffer avoids CPU-starved launcher ANRs in CI, while
+# preserving a tall, portrait Android phone and exercising the native APK.
+adb shell wm size 720x1600
 dimensions="$(adb shell wm size | tr -d '\r' | grep -oE '[0-9]+x[0-9]+' | tail -1)"
 width="${dimensions%x*}"
 height="${dimensions#*x}"
@@ -22,12 +25,24 @@ alive() {
 }
 capture() {
   local name="$1"
-  adb exec-out screencap -p > "$out/$name.png"
-  test "$(stat -c%s "$out/$name.png")" -gt 15000 || {
-    echo "::error::Empty or suspiciously blank Android screenshot: $name"
+  # pidof alone is not enough: in the first run the game was alive BEHIND an
+  # unresponsive Pixel Launcher dialog. Check the actual focused window.
+  local focus
+  focus="$(adb shell dumpsys window | grep -m1 'mCurrentFocus=' | tr -d '\r' || true)"
+  echo "Focused Android window before $name: $focus"
+  if [[ "$focus" != *"$package"* ]]; then
+    echo "::error::The game is not the Android foreground window for $name"
+    adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | head -5 || true
     exit 1
-  }
-  echo "Captured genuine Android screenshot: $name"
+  fi
+  adb exec-out screencap -p > "$out/$name.png"
+  local bytes
+  bytes="$(stat -c%s "$out/$name.png")"
+  if (( bytes < 100000 )); then
+    echo "::error::Android screen has no substantial game art ($bytes bytes): $name"
+    exit 1
+  fi
+  echo "Captured native Android game screenshot: $name ($bytes bytes)"
 }
 tap_percent() {
   adb shell input tap "$((width / 2))" "$((height * $1 / 100))"
@@ -35,7 +50,7 @@ tap_percent() {
   alive
 }
 adb shell monkey -p "$package" -c android.intent.category.LAUNCHER 1
-sleep 9
+sleep 18
 alive
 capture "01-first-run-briefing"
 # System Back must return from the illustrated tutorial to the live case
@@ -51,6 +66,15 @@ tap_percent 88
 capture "04-stamp-filed"
 tap_percent 88
 capture "05-causality-theater"
+# These are different actual game screens. Identical screenshots mean the
+# supposed taps did not reach the UI; screenshot filesize alone can lie.
+for pair in '02-back-to-incidents 03-choose-stamp' '03-choose-stamp 04-stamp-filed' '04-stamp-filed 05-causality-theater'; do
+  read -r before after <<< "$pair"
+  if cmp -s "$out/$before.png" "$out/$after.png"; then
+    echo "::error::Android screenshots did not change between $before and $after"
+    exit 1
+  fi
+done
 adb shell input keyevent KEYCODE_BACK
 sleep 2
 alive
