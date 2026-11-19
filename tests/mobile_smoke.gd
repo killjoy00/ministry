@@ -26,6 +26,8 @@ func _check_mobile() -> void:
     ui._render()
     await _run_frame()
     _assert(_find(ui, "MobileSafeSurface") != null, "Portrait-safe layout exists")
+    var content_scroll := _find(ui, "MobileContentScroll") as ScrollContainer
+    _assert(content_scroll != null and content_scroll.get_global_rect().size.y >= 220.0, "Portrait content viewport occupies usable vertical space")
     _assert(_find(ui, "MobileIncidentFeature") != null, "Incident has an illustrated feature")
     var selected_id: String = ui.selected_event
     _assert(not selected_id.is_empty(), "An eligible incident is selected")
