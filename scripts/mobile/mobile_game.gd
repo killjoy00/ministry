@@ -318,7 +318,7 @@ func _stamps(body: VBoxContainer) -> void:
         tile.add_child(contents)
         var seal := TextureRect.new()
         seal.name = "MobileSealArt_" + id
-        seal.texture = load("res://assets/illustrated/stamp_%s_small.webp" % id) as Texture2D
+        seal.texture = load("res://assets/illustrated/stamp_%s.webp" % id) as Texture2D
         seal.custom_minimum_size = Vector2(64, 62)
         seal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
         seal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -845,7 +845,7 @@ func _tutorial(body: VBoxContainer) -> void:
         if tutorial_step == 1:
             col.add_child(_label("File a Nudge. It raises the chance of the incident, but does not guarantee it. The separate practice file will pay its own Influence cost when the day advances.", 16, MUTED))
             var seal := TextureRect.new()
-            seal.texture = load("res://assets/illustrated/stamp_nudge_small.webp") as Texture2D
+            seal.texture = load("res://assets/illustrated/stamp_nudge.webp") as Texture2D
             seal.custom_minimum_size.y = 75
             seal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
             seal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
