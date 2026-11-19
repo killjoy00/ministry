@@ -93,6 +93,10 @@ func _go() -> void:
     await _capture("07-oddford.png")
     game._change_page("ministry")
     await _capture("08-departments.png")
+    game._change_page("help")
+    await _capture("09-how-to-play.png")
+    game._change_page("tutorial")
+    await _capture("10-first-day-briefing.png")
     root.remove_child(game)
     game.queue_free()
     for error in errors:
