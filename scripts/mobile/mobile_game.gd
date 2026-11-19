@@ -40,6 +40,9 @@ var _last_height: int = 0
 
 func _ready() -> void:
     name = "MinistryMobileGame"
+    # Disable Android's default Back=quit behavior at runtime too; some
+    # launch environments do not carry through the project setting.
+    get_tree().set_quit_on_go_back(false)
     sim = Simulation.new()
     if DisplayServer.get_name() != "headless" and sim.persist and sim.status == "active" and sim.day == 1 and int(sim.profile.get("completed", 0)) == 0 and not FileAccess.file_exists(TUTORIAL_PATH):
         page = "tutorial"
