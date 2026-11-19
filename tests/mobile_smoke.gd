@@ -155,8 +155,8 @@ func _check_mobile() -> void:
     ui._open_town_replay()
     _assert(ui.theater != null and ui.theater.historical_replay, "Archived replay displays recorded simulation events with historical mode")
     if ui.theater != null:
-        var count := ui.theater.recorded.size()
-        _assert(count > 0, "Historical replay has real incident records")
+        var archived_count: int = int(ui.theater.recorded.size())
+        _assert(archived_count > 0, "Historical replay has real incident records")
         ui.theater.call("_finish")
         var archival := _find(ui.theater, "MobileDailySummary") as Label
         _assert(archival != null and archival.text.contains("ORIGINAL CHRONICLE"), "Historical replay never invents old stamp or Strain data")
