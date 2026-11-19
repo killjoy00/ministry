@@ -28,6 +28,10 @@ jobs:
       image: barichello/godot-ci:4.7.2
     steps:
       - uses: actions/checkout@v4
+      - name: Install fontconfig runtime in headless Godot container
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends libfontconfig1 fontconfig
       - name: Import and compile mobile scene
         run: godot --headless --path . --editor --quit
       - name: Mobile portrait, rotation and full gameplay loop
