@@ -87,7 +87,7 @@ jobs:
         run: |
           set -euo pipefail
           # The minimal Godot CI image has sed but no Python runtime.
-          sed -i '/^\\[preset\\.2\\.options\\]/,/^\\[preset\\.3\\]/{s/^architectures\\/x86_64=false$/architectures\\/x86_64=true/;}' export_presets.cfg
+          sed -i '/^\[preset\.2\.options\]/,/^\[preset\.3\]/{s/^architectures\/x86_64=false$/architectures\/x86_64=true/;}' export_presets.cfg
           grep -Fq 'architectures/x86_64=true' export_presets.cfg
           # Keep the signed Play AAB arm64-only. We change only QA debug.
           grep -A 35 -F '[preset.4.options]' export_presets.cfg | grep -Fq 'architectures/x86_64=false'
