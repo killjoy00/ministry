@@ -1,0 +1,12 @@
+{
+  "locale": "en-US",
+  "bundleID": "org.killjoy00.ministry",
+  "version": "0.1.0",
+  "appName": "The Ministry of Coincidences",
+  "subtitle": "Small causes. Big outcomes.",
+  "description": "The universe has paperwork. In The Ministry of Coincidences, you're the clerk who files it.\n\nChoose an unlikely incident, apply a government-approved stamp, and watch the consequences unfold across Oddford. One small intervention can set off a chain of increasingly unreasonable events—and every outcome has a trail you can inspect.\n\nTake on four escalating cases, unlock twelve operational departments, and build a Ministry that specializes in making improbable things happen. Every case plays offline, with progress saved on your device.\n\nFeatures:\n• Four assignments with different goals\n• Four stamps that change the odds of events\n• A short, skippable Causality Theater after each day\n• Permanent desk upgrades and twelve departments\n• No account or internet connection required",
+  "promotionalText": "Stamp an incident. Watch Oddford deal with the consequences.",
+  "keywords": "puzzle,strategy,coincidences,simulation,offline,choices,story,chain reactions,roguelite",
+  "privacyPolicyUrl": "https://github.com/killjoy00/ministry/blob/main/docs/MOBILE_PRIVACY.md",
+  "supportUrl": "https://github.com/killjoy00/ministry/issues"
+}
