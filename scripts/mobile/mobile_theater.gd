@@ -30,6 +30,7 @@ var after_strain: int = 0
 var revealed_count: int = 0
 var complete: bool = false
 var reduced_motion: bool = false
+var historical_replay: bool = false
 var elapsed: float = 0.0
 var cards: Array[Control] = []
 var status_label: Label
@@ -37,7 +38,8 @@ var summary: Label
 var skip_button: Button
 var replay_scroll: ScrollContainer
 
-func configure(game: CaseSimulation, history: Array, stamped: Array, day: int, momentum_before: int, momentum_after: int, strain_before: int, strain_after: int) -> void:
+func configure(game: CaseSimulation, history: Array, stamped: Array, day: int, momentum_before: int, momentum_after: int, strain_before: int, strain_after: int, archived: bool = false) -> void:
+    historical_replay = archived
     simulation = game
     recorded = history.duplicate(true)
     filings = stamped.duplicate(true)
@@ -146,7 +148,8 @@ func _build() -> void:
     stamp.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     stamp.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     file_row.add_child(stamp)
-    var filing_text := "NO STAMP / NATURAL COINCIDENCES ONLY"
+    stamp.visible = not historical_replay
+    var filing_text := "HISTORICAL FILE / ORIGINAL FILINGS UNAVAILABLE" if historical_replay else "NO STAMP / NATURAL COINCIDENCES ONLY"
     if not filings.is_empty():
         var names: Array[String] = []
         for filing in filings:
@@ -154,7 +157,7 @@ func _build() -> void:
             var rule: Dictionary = simulation.get_rule(str(filing.get("target", "")))
             names.append("%s: %s" % [name, str(rule.get("title", "incident"))])
         filing_text = "\n".join(PackedStringArray(names))
-    status_label = _label("AUTHORIZING THE DAY...\n" + filing_text, 15, BURGUNDY, true)
+    status_label = _label(("REPLAYING THE ARCHIVE...\n" if historical_replay else "AUTHORIZING THE DAY...\n") + filing_text, 15, BURGUNDY, true)
     status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     file_row.add_child(status_label)
     content.add_child(_label("INCIDENTS ACTUALLY RECORDED", 15, Color("#f5e1bf"), true))
@@ -262,7 +265,10 @@ func _finish() -> void:
     revealed_count = featured.size()
     status_label.text = "THE DAILY REGISTER IS COMPLETE"
     var extra: String = "  /  %d MORE IN THE CHRONICLE" % (recorded.size() - featured.size()) if recorded.size() > featured.size() else ""
-    summary.text = "%d INCIDENTS  /  %+d MOMENTUM\nREALITY STRAIN %d -> %d%s" % [recorded.size(), after_support - before_support, before_strain, after_strain, extra]
+    if historical_replay:
+        summary.text = "DAY %d  /  %d RECORDED INCIDENTS%s\nORIGINAL CHRONICLE  /  NO RECONSTRUCTED STAMP OR STRAIN DATA" % [day_number, recorded.size(), extra]
+    else:
+        summary.text = "%d INCIDENTS  /  %+d MOMENTUM\nREALITY STRAIN %d -> %d%s" % [recorded.size(), after_support - before_support, before_strain, after_strain, extra]
     summary.visible = true
     skip_button.disabled = true
 
