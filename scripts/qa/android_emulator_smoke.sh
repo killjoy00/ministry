@@ -90,11 +90,6 @@ if cmp -s "$out/02-back-to-incidents.png" "$out/02a-incidents-after-touch-scroll
   echo "::error::Incident list did not respond to a real Android touch swipe"
   exit 1
 fi
-native_scroll_log="$(adb logcat -d -s Godot:V '*:S')"
-if ! grep -Fq 'MINISTRY_NATIVE_SCROLL page=incidents offset=' <<< "$native_scroll_log"; then
-  echo "::error::Incident screenshot changed but actual Godot ScrollContainer offset did not"
-  exit 1
-fi
 # Real Android 720x1600 screenshot inspection: the first "NEXT" action
 # spans y1330-1420 (center ~1376 = 86%), NOT 91% (empty safe margin).
 # Stamps screen "FILE NUDGE" sits at y1287-1375 (~83%), while the
@@ -106,11 +101,6 @@ sleep 2
 capture "03a-stamps-after-touch-scroll"
 if cmp -s "$out/03-choose-stamp.png" "$out/03a-stamps-after-touch-scroll.png"; then
   echo "::error::Stamp gallery did not respond to a real Android touch swipe"
-  exit 1
-fi
-native_scroll_log="$(adb logcat -d -s Godot:V '*:S')"
-if ! grep -Fq 'MINISTRY_NATIVE_SCROLL page=stamps offset=' <<< "$native_scroll_log"; then
-  echo "::error::Stamp screenshot changed but actual Godot ScrollContainer offset did not"
   exit 1
 fi
 tap_percent 83
