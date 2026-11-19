@@ -37,7 +37,7 @@ func _run() -> void:
     _check(scene.get_viewport().get_visible_rect().size==Vector2(1280,800),"Steam Deck resolution")
     for b in [file,advance]:
         if b!=null:
-            var rect:=b.get_global_rect()
+            var rect: Rect2 = (b as Button).get_global_rect()
             _check(rect.position.y>=0 and rect.end.y<=800,"Critical button is on-screen")
     var influence: int = scene.sim.influence
     scene._approve_stamp()
@@ -92,5 +92,6 @@ func _run() -> void:
     if failures.is_empty():
         print("PASS: %d stamp-desk clarity assertions" % checks)
         quit(0)
+        return
     for problem in failures: printerr("FAIL: "+problem)
     quit(1)
