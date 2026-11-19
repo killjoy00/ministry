@@ -35,6 +35,11 @@ func _assert_readable_body(ui: Control, page_name: String) -> void:
 func _run_frame() -> void:
     await process_frame
     await process_frame
+func _check_touch_scroll_bubbling(node: Node, screen: String) -> void:
+    for child in node.get_children():
+        if child is Control:
+            _assert((child as Control).mouse_filter == Control.MOUSE_FILTER_PASS, screen + " touch drags bubble through " + child.name)
+        _check_touch_scroll_bubbling(child, screen)
 func _check_mobile() -> void:
     root.content_scale_size = Vector2i(390, 844)
     root.size = Vector2i(390, 844)
@@ -68,6 +73,20 @@ func _check_mobile() -> void:
     _assert(_find(ui, "MobileSafeSurface") != null, "Portrait-safe layout exists")
     var content_scroll := _find(ui, "MobileContentScroll") as ScrollContainer
     _assert(content_scroll != null and content_scroll.get_global_rect().size.y >= 220.0, "Portrait content viewport occupies usable vertical space")
+    _assert(content_scroll != null and not content_scroll.follow_focus, "A focused incident cannot force a scrolling jump")
+    _assert(content_scroll != null and content_scroll.vertical_scroll_mode == ScrollContainer.SCROLL_MODE_AUTO, "Incident list permits vertical scrolling")
+    _check_touch_scroll_bubbling(_find(ui, "MobilePageBody"), "incidents")
+    var incident_scroll_limit: float = content_scroll.get_v_scroll_bar().max_value - content_scroll.get_v_scroll_bar().page
+    _assert(incident_scroll_limit > 90.0, "Incident list really extends below the mobile viewport")
+    content_scroll.scroll_vertical = 86
+    await _run_frame()
+    var selected_incident_button := _find(ui, "MobileIncident_" + ui.selected_event) as Button
+    _assert(selected_incident_button != null, "Current incident is a tappable card")
+    if selected_incident_button != null:
+        selected_incident_button.pressed.emit()
+        await _run_frame()
+        content_scroll = _find(ui, "MobileContentScroll") as ScrollContainer
+        _assert(content_scroll.scroll_vertical >= 60, "Tapping an incident does not reset the scroll position")
     _assert(_find(ui, "MobileIncidentFeature") != null, "Incident has an illustrated feature")
     _assert(_find(ui, "MobileSettingsButton") != null, "Settings are reachable from any active case")
     var character := _find(ui, "MobileIncidentCharacter") as TextureRect
@@ -83,6 +102,24 @@ func _check_mobile() -> void:
     _assert(forecast != null and forecast.text.contains(ui.sim.forecast()), "Mobile uses the actual simulation correction forecast, same as desktop")
     var seal := _find(ui, "MobileSealArt_nudge") as TextureRect
     _assert(seal != null and seal.texture != null, "Original stamp seal art is visible in the chooser")
+    var stamp_scroll := _find(ui, "MobileContentScroll") as ScrollContainer
+    _assert(stamp_scroll != null and stamp_scroll.vertical_scroll_mode == ScrollContainer.SCROLL_MODE_AUTO, "Stamp gallery permits vertical scrolling")
+    _check_touch_scroll_bubbling(_find(ui, "MobilePageBody"), "stamps")
+    var stamp_scroll_limit: float = stamp_scroll.get_v_scroll_bar().max_value - stamp_scroll.get_v_scroll_bar().page
+    _assert(stamp_scroll_limit > 90.0, "Stamp choices and forecast extend below the phone viewport")
+    stamp_scroll.scroll_vertical = 78
+    await _run_frame()
+    var misfile_button := _find(ui, "MobileStamp_misfile") as Button
+    _assert(misfile_button != null, "Second stamp is selectable")
+    if misfile_button != null:
+        misfile_button.pressed.emit()
+        await _run_frame()
+        stamp_scroll = _find(ui, "MobileContentScroll") as ScrollContainer
+        _assert(stamp_scroll.scroll_vertical >= 60, "Selecting a stamp does not jump to the top")
+        _assert(ui.selected_stamp == "misfile", "Scrolled stamp can be selected")
+        var nudge_button := _find(ui, "MobileStamp_nudge") as Button
+        nudge_button.pressed.emit()
+        await _run_frame()
     _assert(_find(ui, "MobileAdvanceDayButton") == null, "Cannot advance before filing a stamp")
     var current_day: int = ui.sim.day
     ui._advance_day()
