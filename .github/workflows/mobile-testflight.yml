@@ -1,0 +1,144 @@
+name: Ministry iOS TestFlight upload
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ministry-testflight
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    runs-on: xcode-27
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check registered app ID and Apple credentials
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'application/bundle_identifier="org.killjoy00.ministry"' export_presets.cfg
+          grep -Fq 'application/app_store_team_id="3564X3VTDB"' export_presets.cfg
+          test -n "$ASC_KEY_ID" || { echo '::error::Set repository secret ASC_KEY_ID'; exit 1; }
+          test -n "$ASC_ISSUER_ID" || { echo '::error::Set repository secret ASC_ISSUER_ID'; exit 1; }
+          test -n "$ASC_KEY_P8" || { echo '::error::Set repository secret ASC_KEY_P8'; exit 1; }
+          test "$APPLE_TEAM_ID" = '3564X3VTDB' || { echo '::error::APPLE_TEAM_ID does not match registered Ministry team'; exit 1; }
+      - name: Prepare private App Store Connect key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/private_keys"
+          key="$HOME/private_keys/AuthKey_$ASC_KEY_ID.p8"
+          printf '%s' "$ASC_KEY_P8" | tr -d '\r' > "$key"
+          if ! grep -q 'BEGIN PRIVATE KEY' "$key" && grep -q '\\n' "$key"; then
+            printf '%b' "$(cat "$key")" > "$key.tmp"
+            mv "$key.tmp" "$key"
+          fi
+          if ! grep -q 'BEGIN PRIVATE KEY' "$key" && base64 -D < "$key" > "$key.tmp" 2>/dev/null; then
+            if grep -q 'BEGIN PRIVATE KEY' "$key.tmp"; then mv "$key.tmp" "$key"; else rm -f "$key.tmp"; fi
+          fi
+          chmod 600 "$key"
+          openssl pkey -in "$key" -noout >/dev/null
+      - name: Install Godot 4.7.2 and iOS export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://github.com/godotengine/godot/releases/download/4.7.2-stable'
+          curl -fsSL --retry 3 "$BASE/Godot_v4.7.2-stable_macos.universal.zip" -o "$RUNNER_TEMP/godot-macos.zip"
+          curl -fsSL --retry 3 "$BASE/Godot_v4.7.2-stable_export_templates.tpz" -o "$RUNNER_TEMP/templates.tpz"
+          mkdir -p "$RUNNER_TEMP/godot-app" "$RUNNER_TEMP/godot-templates"
+          unzip -q "$RUNNER_TEMP/godot-macos.zip" -d "$RUNNER_TEMP/godot-app"
+          unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/godot-templates"
+          destination="$HOME/Library/Application Support/Godot/export_templates/4.7.2.stable"
+          mkdir -p "$destination"
+          cp -R "$RUNNER_TEMP/godot-templates/templates/." "$destination/"
+          find "$RUNNER_TEMP/godot-app" -maxdepth 8 -type f -name Godot -exec cp {} "$RUNNER_TEMP/godot-editor" \;
+          chmod +x "$RUNNER_TEMP/godot-editor"
+          "$RUNNER_TEMP/godot-editor" --headless --path . --editor --quit
+      - name: Export Xcode source from Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/ios/xcode
+          "$RUNNER_TEMP/godot-editor" --headless --path . --export-release 'iOS Xcode Project' build/ios/MinistryOfCoincidences.zip
+          test -s build/ios/MinistryOfCoincidences.zip
+          unzip -q build/ios/MinistryOfCoincidences.zip -d build/ios/xcode
+          find build/ios/xcode -maxdepth 5 -name '*.xcodeproj' -type d | grep -q .
+      - name: Archive registered iPhone app
+        shell: bash
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          project="$(find build/ios/xcode -maxdepth 5 -name '*.xcodeproj' -type d -print -quit)"
+          test -n "$project"
+          scheme="$(basename "$project" .xcodeproj)"
+          export MINISTRY_IOS_BUILD="$((1000 + GITHUB_RUN_NUMBER))"
+          echo "MINISTRY_IOS_BUILD=$MINISTRY_IOS_BUILD" >> "$GITHUB_ENV"
+          xcodebuild archive \
+            -project "$project" -scheme "$scheme" \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Ministry.xcarchive" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY=- AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            MARKETING_VERSION=0.1.0 CURRENT_PROJECT_VERSION="$MINISTRY_IOS_BUILD" \
+            2>&1 | tee "$RUNNER_TEMP/ministry-archive.log"
+          app="$(find "$RUNNER_TEMP/Ministry.xcarchive/Products/Applications" -maxdepth 1 -name '*.app' -type d -print -quit)"
+          test -n "$app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = 'org.killjoy00.ministry'
+          codesign --verify --deep --strict "$app"
+      - name: Apple-managed distribution signing and TestFlight upload
+        shell: bash
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/MinistryExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>destination</key><string>upload</string>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Ministry.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/MinistryExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/MinistryExport" -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_$ASC_KEY_ID.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee "$RUNNER_TEMP/ministry-upload.log"
+          echo '## Ministry TestFlight' >> "$GITHUB_STEP_SUMMARY"
+          echo "- Bundle ID: org.killjoy00.ministry" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version: 0.1.0 ($MINISTRY_IOS_BUILD)" >> "$GITHUB_STEP_SUMMARY"
+          echo '- Upload submitted; Apple processing and any beta review remain pending.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Report archive/upload errors
+        if: failure()
+        shell: bash
+        run: |
+          for log in "$RUNNER_TEMP/ministry-archive.log" "$RUNNER_TEMP/ministry-upload.log"; do
+            if [ -f "$log" ]; then grep -E 'error:|ERROR:|ITMS-|409' "$log" | head -35 || true; fi
+          done
+      - name: Remove temporary private key
+        if: always()
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        shell: bash
+        run: |
+          if [ -n "$ASC_KEY_ID" ]; then rm -f "$HOME/private_keys/AuthKey_$ASC_KEY_ID.p8"; fi
