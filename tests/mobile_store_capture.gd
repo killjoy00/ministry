@@ -97,12 +97,19 @@ func _go() -> void:
     await _capture("09-how-to-play.png")
     game._change_page("tutorial")
     await _capture("10-first-day-briefing.png")
+    game._change_page("cast")
+    await _capture("11-residents.png")
+    game._change_page("settings")
+    await _capture("12-office-settings.png")
+    game._change_page("town")
+    game._select_town_location("Bakery")
+    await _capture("13-local-district.png")
     root.remove_child(game)
     game.queue_free()
     for error in errors:
         printerr("STORE CAPTURE ERROR: ", error)
     if errors.is_empty():
-        print("PASS: eight genuine mobile gameplay store screenshots")
+        print("PASS: 13 genuine mobile gameplay store screenshots")
         quit(0)
     else:
         quit(1)
