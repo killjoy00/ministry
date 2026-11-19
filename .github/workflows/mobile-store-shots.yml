@@ -1,0 +1,43 @@
+name: Ministry genuine mobile store screenshots
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/mobile_store_capture.gd'
+      - '.github/workflows/mobile-store-shots.yml'
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    container:
+      image: barichello/godot-ci:4.7.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install offscreen rendering dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends \
+            xvfb xauth libfontconfig1 fontconfig libgl1-mesa-dri libgl1 \
+            libxrandr2 libxcursor1 libxi6 libxinerama1
+      - name: Import real Ministry textures and scripts
+        run: godot --headless --path . --editor --import --quit
+      - name: Capture actual rendered mobile game screens
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/mobile-store-shots
+          xvfb-run -a -s '-screen 0 1440x2960x24' \
+            godot --path . --rendering-method gl_compatibility \
+            --script res://tests/mobile_store_capture.gd
+          test "$(find build/mobile-store-shots -maxdepth 1 -name '*.png' | wc -l)" -eq 7
+      - name: Preserve unaltered Godot gameplay images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ministry-mobile-authentic-store-shots
+          path: build/mobile-store-shots/*.png
+          retention-days: 30
+          if-no-files-found: warn
