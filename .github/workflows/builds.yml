@@ -16,6 +16,11 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  # A new PR revision supersedes earlier checks; keep main-branch tests intact.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   export:
     runs-on: ubuntu-latest
