@@ -40,6 +40,7 @@ var practice: CaseSimulation = null
 var first_focus: Button
 var _last_width: int = 0
 var _last_height: int = 0
+var _rendered_page: String = ""
 
 func _ready() -> void:
     name = "MinistryMobileGame"
@@ -79,6 +80,12 @@ func _handle_android_back() -> void:
 func _render() -> void:
     if sim == null:
         return
+    # Reselecting an incident or stamp rebuilds this page. Preserve the
+    # scrolled position instead of jumping back to the first card on every tap.
+    var previous := find_child("MobileContentScroll", true, false) as ScrollContainer
+    var restore_offset: int = 0
+    if previous != null and _rendered_page == page:
+        restore_offset = previous.scroll_vertical
     _last_width = roundi(get_viewport_rect().size.x)
     _last_height = roundi(get_viewport_rect().size.y)
     for child in get_children():
@@ -122,7 +129,10 @@ func _render() -> void:
     scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
     scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-    scroll.follow_focus = true
+    scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+    scroll.scroll_deadzone = 8
+    # Touch focus must not jump the viewport back to a focused incident card.
+    scroll.follow_focus = false
     surface.add_child(scroll)
     var body := VBoxContainer.new()
     body.name = "MobilePageBody"
@@ -146,7 +156,25 @@ func _render() -> void:
         "results": _results(body)
         _: _incidents(body)
     _bottom_bar(surface)
-    # Never auto-scroll the incident choice away from the top of the page.
+    # Godot's default STOP filter on buttons and panel wrappers swallows touch
+    # drags before they reach the containing ScrollContainer. PASS still lets
+    # controls receive taps, but bubbles drag gestures up to the scroller.
+    _enable_touch_scroll(body)
+    _rendered_page = page
+    if restore_offset > 0:
+        _restore_scroll_position(scroll, page, restore_offset)
+
+func _enable_touch_scroll(node: Node) -> void:
+    for child in node.get_children():
+        if child is Control:
+            (child as Control).mouse_filter = Control.MOUSE_FILTER_PASS
+        _enable_touch_scroll(child)
+
+func _restore_scroll_position(scroll: ScrollContainer, screen: String, offset: int) -> void:
+    # Wait for Godot's Container layout to calculate the content extent.
+    await get_tree().process_frame
+    if is_instance_valid(scroll) and scroll.is_inside_tree() and page == screen:
+        scroll.scroll_vertical = offset
 
 func _safe_margins() -> Dictionary:
     # Android/iOS safe areas are in physical display pixels; Godot UI operates
