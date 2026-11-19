@@ -28,8 +28,8 @@ PR-triggered AAB smoke builds use a **one-time, throwaway key only to verify Gra
 ## iOS: unsigned Xcode first, then TestFlight signing
 1. The existing iOS project export is `.github/workflows/mobile-ios.yml` (GitHub Actions requires an available macOS runner). It produces an **unsigned Xcode project**, not an IPA.
 2. Create or reuse an **App Store Connect API key** with appropriate application access. Store the `.p8` private key in GitHub Actions secrets; do not commit or paste it into an issue or chat. Existing related app workflows use secret names `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, `APPLE_TEAM_ID`. Secrets are scoped per repository unless deliberately shared at organization level.
-3. Use a macOS/Xcode signing workflow or Xcode automatic signing with the correct Team and registered bundle ID to archive and upload an IPA to App Store Connect. The current PR **does not** automate a signed TestFlight submission yet. Do not interpret an unsigned Xcode ZIP as an installable iOS app.
-4. In **App Store Connect → The Ministry of Coincidences → TestFlight**, add internal testers once the build has processed.
+3. Once the mobile changes and their prerequisites have been merged into `main`, open **GitHub → Actions → Ministry iOS TestFlight upload → Run workflow**. The manual `.github/workflows/mobile-testflight.yml` workflow exports the Godot Xcode project, archives with the registered Team ID, and attempts Apple's managed distribution signing/upload using these four GitHub Secrets. This signing/upload workflow is prepared but has **not yet run successfully or produced an IPA**; resolve any Xcode or account errors from the run logs.
+4. In **App Store Connect → The Ministry of Coincidences → TestFlight**, add internal testers once the uploaded build has processed. An unsigned Xcode ZIP is not an installable app.
 
 ## Store metadata draft
 
