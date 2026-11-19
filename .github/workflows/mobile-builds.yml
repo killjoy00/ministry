@@ -44,6 +44,10 @@ jobs:
     needs: [mobile-tests]
     steps:
       - uses: actions/checkout@v4
+      - name: Install headless Godot fontconfig runtime
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends libfontconfig1 fontconfig
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
