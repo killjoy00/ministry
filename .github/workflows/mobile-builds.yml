@@ -55,6 +55,17 @@ jobs:
       - uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools'
+      - name: Configure Godot 4.7.2 export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_dir=/root/.local/share/godot/export_templates/4.7.2.stable
+          dest_dir="$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          test -s "$source_dir/android_debug.apk"
+          test -s "$source_dir/android_release.apk"
+          mkdir -p "$(dirname "$dest_dir")"
+          if [ ! -e "$dest_dir" ]; then ln -s "$source_dir" "$dest_dir"; fi
+          test -s "$dest_dir/android_debug.apk"
       - name: Install SDK components and configure Godot
         shell: bash
         run: |
