@@ -49,12 +49,18 @@ func _check_mobile() -> void:
     await _run_frame()
     var file_button := _find(ui, "MobileFileStampButton") as Button
     _assert(file_button != null and not file_button.disabled, "Mobile stamp is available")
+    var skip_button := _find(ui, "MobileSkipFilingButton") as Button
+    _assert(skip_button != null and skip_button.get_global_rect().size.x >= 250.0, "Skip action is legible and not a sliver")
+    _assert(file_button != null and file_button.get_global_rect().size.y <= 90.0, "File action is normal tap height, not a giant rectangle")
     var original_influence: int = ui.sim.influence
-    ui._file_stamp()
+    file_button.pressed.emit()
     _assert(not ui.sim.pending.is_empty(), "Touch filing stages the actual simulation")
     _assert(str(ui.sim.pending.get("target", "")) == selected_id and str(ui.sim.pending.get("stamp", "")) == "nudge", "Filed incident and selected stamp agree")
     _assert(_find(ui, "MobileFilingRibbon") != null, "Filed incident stays visible beside the day action")
     _assert(_find(ui, "MobileAdvanceDayButton") != null, "Advance appears only after filing")
+    await _run_frame()
+    var advance_button := _find(ui, "MobileAdvanceDayButton") as Button
+    _assert(advance_button != null and advance_button.get_global_rect().size.y <= 90.0, "Advance action has a proper touch target")
     _assert(ui.sim.influence == original_influence, "Filing does not spend Influence until the day advances")
     ui._undo()
     _assert(ui.sim.pending.is_empty(), "Mobile Undo clears a filing")
