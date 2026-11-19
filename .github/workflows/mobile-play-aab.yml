@@ -35,7 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sdkmanager --licenses >/dev/null < /dev/zero || true
+          yes | sdkmanager --licenses >/dev/null || true
           sdkmanager 'platform-tools' 'build-tools;35.0.1' 'platforms;android-35' 'ndk;28.1.13356709' 'cmake;3.10.2.4988404'
           source_dir=/root/.local/share/godot/export_templates/4.7.2.stable
           dest_dir="$HOME/.local/share/godot/export_templates/4.7.2.stable"
