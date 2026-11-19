@@ -229,7 +229,7 @@ func _incidents(body: VBoxContainer) -> void:
         feature_row.add_child(caption)
         caption.add_child(_label(str(current["title"]), 19, INK, true))
         caption.add_child(_label(str(current.get("place", "Oddford")), 14, BURGUNDY, true))
-        caption.add_child(_label("%d%% CHANCE WITHOUT A STAMP" % roundi(float(current["chance"]) * 100.0), 14, GREEN, true))
+        caption.add_child(_label("%d%% NATURAL CHANCE IF ATTEMPTED" % roundi(float(current["chance"]) * 100.0), 14, GREEN, true))
         var actor := TextureRect.new()
         actor.name = "MobileIncidentCharacter"
         actor.texture = load("res://assets/illustrated/portrait_%s.webp" % _portrait_for_event(str(current["id"]))) as Texture2D
@@ -246,7 +246,7 @@ func _incidents(body: VBoxContainer) -> void:
             var id: String = str(rule["id"])
             var already: bool = id == str(sim.pending.get("target", "")) or id == str(sim.second_pending.get("target", ""))
             var marker: String = "FILED  •  " if already else "SELECTED  •  " if id == selected_event else ""
-            var caption: String = "%s%s\n%s  |  %d%% natural chance" % [marker, str(rule["title"]), str(rule.get("place", "Oddford")), roundi(float(rule["chance"]) * 100.0)]
+            var caption: String = "%s%s\n%s  |  %d%% chance if attempted" % [marker, str(rule["title"]), str(rule.get("place", "Oddford")), roundi(float(rule["chance"]) * 100.0)]
             var btn := _button(caption, id == selected_event, 70)
             btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
             btn.name = "MobileIncident_" + id
@@ -538,6 +538,8 @@ func _bottom_bar(parent: VBoxContainer) -> void:
             var target: Dictionary = sim.get_rule(selected_event)
             info.add_child(_label("YOUR INCIDENT: " + str(target.get("title", "Choose an incident")), 15, INK, true))
             info.add_child(_label("YOUR STAMP: %s  •  NOT YET FILED" % str(STAMP_LABELS[selected_stamp]), 14, BURGUNDY, true))
+            if not target.is_empty():
+                info.add_child(_label(_preview(target), 13, MUTED))
         else:
             info.add_child(_label("%d STAMP%s FILED FOR TODAY" % [_filed_count(), "" if _filed_count() == 1 else "S"], 14, GREEN, true))
             for filing in [sim.pending, sim.second_pending]:
