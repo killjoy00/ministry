@@ -75,7 +75,10 @@ func _render() -> void:
     backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
     backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     add_child(backdrop)
-    var center := CenterContainer.new()
+    # Center the phone column horizontally, but fill the full height.
+    # CenterContainer collapses the scroll viewport to its minimum height.
+    var center := HBoxContainer.new()
+    center.alignment = BoxContainer.ALIGNMENT_CENTER
     center.name = "MobileSafeSurface"
     center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     center.mouse_filter = Control.MOUSE_FILTER_PASS
