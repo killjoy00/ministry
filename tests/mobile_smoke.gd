@@ -29,17 +29,32 @@ func _check_mobile() -> void:
     var content_scroll := _find(ui, "MobileContentScroll") as ScrollContainer
     _assert(content_scroll != null and content_scroll.get_global_rect().size.y >= 220.0, "Portrait content viewport occupies usable vertical space")
     _assert(_find(ui, "MobileIncidentFeature") != null, "Incident has an illustrated feature")
+    var character := _find(ui, "MobileIncidentCharacter") as TextureRect
+    _assert(character != null and character.texture != null, "The actual illustrated Oddford character is present")
+    _assert((_find(ui, "MobileIncidentTown") as TextureRect).texture != null, "Real Oddford town illustration is loaded")
     var selected_id: String = ui.selected_event
     _assert(not selected_id.is_empty(), "An eligible incident is selected")
     _assert((_find(ui, "MobileContinueToStamp") as Button) != null, "Portrait has a stamp-navigation button")
     ui._change_page("stamps")
     await _run_frame()
     _assert(_find(ui, "MobileStampPreview") != null, "Probability / cost preview available")
+    var seal := _find(ui, "MobileSealArt_nudge") as TextureRect
+    _assert(seal != null and seal.texture != null, "Original stamp seal art is visible in the chooser")
+    _assert(_find(ui, "MobileAdvanceDayButton") == null, "Cannot advance before filing a stamp")
+    var current_day: int = ui.sim.day
+    ui._advance_day()
+    _assert(ui.sim.day == current_day, "An unstamped advance attempt cannot silently consume the day")
+    _assert(_find(ui, "MobileConfirmEmptyDayButton") != null, "Explicit no-stamp confirmation appears")
+    ui._cancel_unstamped_day()
+    await _run_frame()
     var file_button := _find(ui, "MobileFileStampButton") as Button
     _assert(file_button != null and not file_button.disabled, "Mobile stamp is available")
     var original_influence: int = ui.sim.influence
     ui._file_stamp()
     _assert(not ui.sim.pending.is_empty(), "Touch filing stages the actual simulation")
+    _assert(str(ui.sim.pending.get("target", "")) == selected_id and str(ui.sim.pending.get("stamp", "")) == "nudge", "Filed incident and selected stamp agree")
+    _assert(_find(ui, "MobileFilingRibbon") != null, "Filed incident stays visible beside the day action")
+    _assert(_find(ui, "MobileAdvanceDayButton") != null, "Advance appears only after filing")
     _assert(ui.sim.influence == original_influence, "Filing does not spend Influence until the day advances")
     ui._undo()
     _assert(ui.sim.pending.is_empty(), "Mobile Undo clears a filing")
@@ -58,12 +73,17 @@ func _check_mobile() -> void:
     _assert(ui.sim.stage_stamp("nudge", second), "Double Booking permits a second different incident")
     ui._render()
     _assert(ui._filed_count() == 2, "Mobile filing count shows two")
-    _assert((_find(ui, "MobileFileStampButton") as Button).disabled, "Third filing is blocked")
+    _assert(_find(ui, "MobileFileStampButton") == null, "No third filing button when both interventions are filed")
+    _assert(_find(ui, "MobileAdvanceDayButton") != null, "Two filings can advance together")
     ui._advance_day()
     await _run_frame()
     _assert(ui.theater != null, "Advance opens mobile Causality Theater")
     var theater: Node = _find(ui, "MobileCausalityTheater")
     _assert(theater != null, "Mobile theater is mounted as modal")
+    var theater_scroll := _find(ui, "MobileTheaterScroll") as ScrollContainer
+    _assert(theater_scroll != null and theater_scroll.get_global_rect().size.y >= 220.0, "Theater artwork viewport has usable height")
+    var town := _find(ui, "MobileCausalityTown") as TextureRect
+    _assert(town != null and town.texture != null, "Actual illustrated Oddford stage loads in theater")
     if theater != null:
         theater.call("_finish")
         _assert(_find(theater, "MobileDailySummary") != null, "Daily summary is available after skip")
