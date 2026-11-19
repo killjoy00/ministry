@@ -49,7 +49,10 @@ tap_percent() {
   sleep 2
   alive
 }
-adb shell monkey -p "$package" -c android.intent.category.LAUNCHER 1
+# The hosted emulator's AOSP launcher can hang during cold boot even while
+# Godot is running. Avoid launching through the home screen.
+adb shell am force-stop com.android.launcher3 || true
+adb shell am start -W -n "$package/com.godot.game.GodotAppLauncher"
 sleep 18
 alive
 capture "01-first-run-briefing"
@@ -81,7 +84,10 @@ alive
 capture "06-back-from-theater"
 adb shell input keyevent KEYCODE_HOME
 sleep 2
-adb shell monkey -p "$package" -c android.intent.category.LAUNCHER 1
+# The hosted emulator's AOSP launcher can hang during cold boot even while
+# Godot is running. Avoid launching through the home screen.
+adb shell am force-stop com.android.launcher3 || true
+adb shell am start -W -n "$package/com.godot.game.GodotAppLauncher"
 sleep 4
 alive
 capture "07-resumed-case"
