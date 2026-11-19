@@ -44,7 +44,7 @@ func _check_mobile() -> void:
     ui.page = "incidents"
     ui._render()
     await _run_frame()
-    _assert(not bool(ProjectSettings.get_setting("application/config/quit_on_go_back", true)), "Android Back does not automatically exit the game")
+    _assert(not is_quit_on_go_back(), "Android Back does not automatically exit the game")
     _assert_readable_body(ui, "incidents")
     # Instruction screens must be readable against the dark page, not just
     # structurally present in the Godot scene.
