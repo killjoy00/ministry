@@ -11,9 +11,12 @@ on:
       - '.github/workflows/mobile-ios.yml'
 permissions:
   contents: read
+concurrency:
+  group: ministry-ios-unsigned-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   xcode-project:
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
