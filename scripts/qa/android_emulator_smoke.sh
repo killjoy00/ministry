@@ -16,10 +16,18 @@ height="${dimensions#*x}"
 test "$width" -gt 500
 test "$height" -gt 1000
 echo "Android emulator display: $dimensions"
+diagnose() {
+  adb logcat -d -v threadtime > "$out/android-full-logcat.txt" || true
+  adb shell dumpsys gfxinfo "$package" > "$out/android-gfxinfo.txt" || true
+  adb shell dumpsys SurfaceFlinger --list > "$out/android-surfaces.txt" || true
+  adb shell dumpsys activity activities > "$out/android-activities.txt" || true
+  echo "Relevant Android/Godot startup messages:"
+  grep -Ei 'Godot|OpenGL|Vulkan|EGL|shader|androidruntime|fatal exception|ANR|failed|permission' "$out/android-full-logcat.txt" | tail -130 || true
+}
 alive() {
   adb shell pidof "$package" | tr -d '\r' | grep -Eq '^[0-9 ]+$' || {
     echo "::error::The Ministry Android activity is no longer running"
-    adb logcat -d -s Godot:V AndroidRuntime:E '*:S' | tail -120 || true
+    diagnose
     return 1
   }
 }
@@ -33,13 +41,24 @@ capture() {
   if [[ "$focus" != *"$package"* ]]; then
     echo "::error::The game is not the Android foreground window for $name"
     adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' | head -5 || true
+    diagnose
     exit 1
   fi
-  adb exec-out screencap -p > "$out/$name.png"
-  local bytes
-  bytes="$(stat -c%s "$out/$name.png")"
+  local bytes=0
+  # On a cold software-rendered emulator the first few frames can be blank.
+  # Do not accept a blank frame; retry briefly and keep the actual failure.
+  for attempt in 1 2 3 4; do
+    adb exec-out screencap -p > "$out/$name.png"
+    bytes="$(stat -c%s "$out/$name.png")"
+    if (( bytes >= 100000 )); then
+      break
+    fi
+    echo "Frame $attempt for $name is still blank/monochrome ($bytes bytes)"
+    if (( attempt < 4 )); then sleep 10; fi
+  done
   if (( bytes < 100000 )); then
     echo "::error::Android screen has no substantial game art ($bytes bytes): $name"
+    diagnose
     exit 1
   fi
   echo "Captured native Android game screenshot: $name ($bytes bytes)"
@@ -92,6 +111,7 @@ sleep 4
 alive
 capture "07-resumed-case"
 adb logcat -d -s Godot:V AndroidRuntime:E '*:S' > "$out/runtime-log.txt" || true
+diagnose
 if grep -Eq 'SCRIPT ERROR|Parse Error|FATAL EXCEPTION' "$out/runtime-log.txt"; then
   echo "::error::Godot or Android reported a runtime/script exception"
   grep -E -A 9 'SCRIPT ERROR|Parse Error|FATAL EXCEPTION' "$out/runtime-log.txt" | head -100
