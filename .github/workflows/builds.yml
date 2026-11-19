@@ -62,6 +62,8 @@ jobs:
         run: godot --headless --path . --script res://tests/assignments_balance.gd
       - name: Stamp desk clarity and controller focus
         run: godot --headless --path . --script res://tests/stamp_desk_smoke.gd
+      - name: Illustrated incident-stage and four-case controller regression
+        run: godot --headless --path . --script res://tests/decision_theater_smoke.gd
       - name: Expanded incident atlas reachability and replay variety
         run: godot --headless --path . --script res://tests/incident_expansion_smoke.gd
       - name: First-day practice and causal dossier regression
