@@ -52,6 +52,11 @@ func _check_mobile() -> void:
         ui._change_page(screen)
         await _run_frame()
         _assert_readable_body(ui, screen)
+    ui._change_page("tutorial")
+    var skip_tutorial := _find(ui, "MobileSkipBriefingFooter") as Button
+    _assert(skip_tutorial != null, "First-run briefing has an explicit sticky skip action")
+    skip_tutorial.pressed.emit()
+    _assert(ui.page == "incidents" and FileAccess.file_exists(ui.TUTORIAL_PATH), "Skipping the briefing persists completion and opens the real case")
     ui._change_page("help")
     ui._handle_android_back()
     _assert(ui.page == "incidents", "Android Back returns from Help to current case")
