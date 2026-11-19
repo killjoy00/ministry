@@ -26,6 +26,7 @@ var selected_stamp: String = "nudge"
 var evidence_id: String = ""
 var feedback: String = ""
 var theater: Control = null
+var confirm_unstamped_day: bool = false
 var tutorial_step: int = 0
 var practice: CaseSimulation = null
 var first_focus: Button
@@ -128,8 +129,7 @@ func _render() -> void:
         "results": _results(body)
         _: _incidents(body)
     _bottom_bar(surface)
-    if first_focus != null:
-        _focus_after_layout(first_focus)
+    # Never auto-scroll the incident choice away from the top of the page.
 
 func _safe_margins() -> Dictionary:
     # Android/iOS safe areas are in physical display pixels; Godot UI operates
@@ -200,7 +200,8 @@ func _incidents(body: VBoxContainer) -> void:
         selected_event = str(available[0].get("id", "")) if not available.is_empty() else ""
     var limit: int = 2 if sim.has_department("double_booking") else 1
     var filed: int = _filed_count()
-    _section(body, "CHOOSE UP TO %d INCIDENT%s TO INFLUENCE" % [limit, "" if limit == 1 else "S"], "%d OF %d FILED TODAY  |  OTHER INCIDENTS MAY HAPPEN NATURALLY" % [filed, limit])
+    _section(body, "1. CHOOSE AN INCIDENT", "Select something in Oddford to influence. You will stamp it next.")
+    body.add_child(_label("%d OF %d FILED  /  Unstamped events may still happen." % [filed, limit], 14, Color("#e9dbc3")))
     var current: Dictionary = sim.get_rule(selected_event)
     if not current.is_empty():
         var featured := _panel(PAPER, GOLD, 2, 12)
@@ -209,6 +210,7 @@ func _incidents(body: VBoxContainer) -> void:
         var frame := VBoxContainer.new()
         frame.add_theme_constant_override("separation", 4)
         featured.add_child(frame)
+        frame.add_child(_label("UNDER OBSERVATION  /  THE TOWN OF ODDFORD", 13, BURGUNDY, true))
         var picture := TextureRect.new()
         picture.name = "MobileIncidentTown"
         picture.texture = load("res://assets/illustrated/oddford_banner.webp") as Texture2D
@@ -227,7 +229,14 @@ func _incidents(body: VBoxContainer) -> void:
         feature_row.add_child(caption)
         caption.add_child(_label(str(current["title"]), 19, INK, true))
         caption.add_child(_label(str(current.get("place", "Oddford")), 14, BURGUNDY, true))
-        caption.add_child(_label("%d%% NATURAL CHANCE IF ATTEMPTED" % roundi(float(current["chance"]) * 100.0), 14, GREEN, true))
+        caption.add_child(_label("%d%% CHANCE WITHOUT A STAMP" % roundi(float(current["chance"]) * 100.0), 14, GREEN, true))
+        var actor := TextureRect.new()
+        actor.name = "MobileIncidentCharacter"
+        actor.texture = load("res://assets/illustrated/portrait_%s.webp" % _portrait_for_event(str(current["id"]))) as Texture2D
+        actor.custom_minimum_size = Vector2(70, 82)
+        actor.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        actor.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        feature_row.add_child(actor)
         frame.add_child(_label(str(current["text"]), 15, MUTED))
     if available.is_empty():
         body.add_child(_label("No new incidents are eligible. Advance the day to resolve the town's business.", 17, MUTED))
@@ -236,7 +245,8 @@ func _incidents(body: VBoxContainer) -> void:
         for rule in available:
             var id: String = str(rule["id"])
             var already: bool = id == str(sim.pending.get("target", "")) or id == str(sim.second_pending.get("target", ""))
-            var caption: String = "%s%s\n%s  |  %d%% chance" % ["[FILED]  " if already else "", str(rule["title"]), str(rule.get("place", "Oddford")), roundi(float(rule["chance"]) * 100.0)]
+            var marker: String = "FILED  •  " if already else "SELECTED  •  " if id == selected_event else ""
+            var caption: String = "%s%s\n%s  |  %d%% natural chance" % [marker, str(rule["title"]), str(rule.get("place", "Oddford")), roundi(float(rule["chance"]) * 100.0)]
             var btn := _button(caption, id == selected_event, 70)
             btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
             btn.name = "MobileIncident_" + id
@@ -246,7 +256,7 @@ func _incidents(body: VBoxContainer) -> void:
                 first_focus = btn
 
 func _stamps(body: VBoxContainer) -> void:
-    _section(body, "APPLY A MINISTRY STAMP", "FILING IS NOT RESOLVING. THE DAY RUNS ONLY WHEN YOU CHOOSE ADVANCE.")
+    _section(body, "2. CHOOSE A STAMP", "Pick how to influence the incident. The stamp does nothing until you file it.")
     var rule: Dictionary = sim.get_rule(selected_event)
     if rule.is_empty() or not sim._eligible(rule):
         var events: Array = sim.available_events()
@@ -734,6 +744,18 @@ func _art(family: String, dimensions: Vector2) -> TextureRect:
     art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     art.mouse_filter = Control.MOUSE_FILTER_IGNORE
     return art
+
+func _portrait_for_event(id: String) -> String:
+    var key: String = id.to_lower()
+    if "bake" in key or "bread" in key or "sandwich" in key or "recipe" in key:
+        return "baker"
+    if "paper" in key or "press" in key or "news" in key or "camera" in key or "report" in key:
+        return "reporter"
+    if "mayor" in key or "election" in key or "vote" in key or "council" in key:
+        return "mayor"
+    if "post" in key or "letter" in key or "organize" in key:
+        return "organizer"
+    return "gerald"
 
 func _family(id: String) -> String:
     if "rain" in id or "fair" in id or "parade" in id or "calendar" in id:
