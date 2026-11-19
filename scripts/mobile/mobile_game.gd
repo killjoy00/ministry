@@ -449,18 +449,31 @@ func _town(body: VBoxContainer) -> void:
     var district_points := [Vector2(.51, .54), Vector2(.89, .57), Vector2(.17, .54), Vector2(.38, .77), Vector2(.69, .77), Vector2(.46, .38)]
     for i in range(TOWN_LOCATIONS.size()):
         var place: String = TOWN_LOCATIONS[i]
-        var pin := _button(str(i + 1), place == selected_town_location, 46)
+        var pin := _button(["TH", "BK", "PO", "HS", "PG", "PH"][i], place == selected_town_location, 44)
         pin.name = "MobileTownPin_" + place.replace(" ", "")
         pin.tooltip_text = place
-        pin.add_theme_font_size_override("font_size", 15)
+        pin.add_theme_font_size_override("font_size", 14)
+        pin.add_theme_color_override("font_color", CREAM)
+        var seal_style := StyleBoxFlat.new()
+        seal_style.bg_color = BURGUNDY if place == selected_town_location else Color("#30484ce8")
+        seal_style.border_color = GOLD
+        seal_style.set_border_width_all(2)
+        seal_style.set_corner_radius_all(24)
+        seal_style.set_content_margin_all(2)
+        pin.add_theme_stylebox_override("normal", seal_style)
+        var hover_seal := seal_style.duplicate() as StyleBoxFlat
+        hover_seal.bg_color = BURGUNDY
+        pin.add_theme_stylebox_override("hover", hover_seal)
+        pin.add_theme_stylebox_override("pressed", hover_seal)
+        pin.add_theme_stylebox_override("focus", hover_seal)
         pin.anchor_left = district_points[i].x
         pin.anchor_right = district_points[i].x
         pin.anchor_top = district_points[i].y
         pin.anchor_bottom = district_points[i].y
-        pin.offset_left = -24
-        pin.offset_right = 24
-        pin.offset_top = -24
-        pin.offset_bottom = 24
+        pin.offset_left = -22
+        pin.offset_right = 22
+        pin.offset_top = -22
+        pin.offset_bottom = 22
         pin.pressed.connect(_select_town_location.bind(place))
         map_canvas.add_child(pin)
     body.add_child(_label("VISIT A DISTRICT  /  TAP TO INSPECT ITS LIVE FILE", 14, LIGHT_ACCENT, true))
@@ -541,6 +554,14 @@ func _town(body: VBoxContainer) -> void:
 func _select_town_location(place: String) -> void:
     selected_town_location = place
     _render()
+    # Bring the new witness report into view on a phone instead of leaving
+    # players staring at the top of a long map after tapping a district.
+    var scroll := find_child("MobileContentScroll", true, false) as ScrollContainer
+    var docket := find_child("MobileTownWitnessDocket", true, false) as Control
+    if scroll != null and docket != null:
+        await get_tree().process_frame
+        if is_instance_valid(scroll) and is_instance_valid(docket):
+            scroll.ensure_control_visible(docket)
 
 func _select_town_incident(id: String) -> void:
     selected_event = id
