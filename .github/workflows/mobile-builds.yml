@@ -7,6 +7,7 @@ on:
       - 'scenes/mobile_main.tscn'
       - 'assets/mobile/**'
       - 'tests/mobile_smoke.gd'
+      - 'scripts/qa/android_emulator_smoke.sh'
       - 'project.godot'
       - 'export_presets.cfg'
       - '.github/workflows/mobile-builds.yml'
@@ -16,6 +17,7 @@ on:
       - 'scripts/mobile/**'
       - 'scenes/mobile_main.tscn'
       - 'assets/mobile/**'
+      - 'scripts/qa/android_emulator_smoke.sh'
       - 'project.godot'
       - 'export_presets.cfg'
 permissions:
