@@ -278,19 +278,36 @@ func _stamps(body: VBoxContainer) -> void:
     else:
         body.add_child(_label("There are no eligible incidents. You may advance without a stamp.", 17, MUTED))
     var grid := GridContainer.new()
+    grid.name = "MobileStampSealGallery"
     grid.columns = 2
-    grid.add_theme_constant_override("h_separation", 7)
-    grid.add_theme_constant_override("v_separation", 7)
+    grid.add_theme_constant_override("h_separation", 8)
+    grid.add_theme_constant_override("v_separation", 8)
     body.add_child(grid)
     for id in Simulation.STAMP_ORDER:
         var stamp: Dictionary = Simulation.STAMPS[id]
-        var short: String = str(STAMP_LABELS[id])
-        var button := _button("%s\n%d Influence  /  +%d Strain" % [short, int(stamp["cost"]), maxi(1, int(stamp["strain"]) - int(sim.profile.get("audit", 0)))], id == selected_stamp, 74)
+        var is_selected: bool = id == selected_stamp
+        var tile := _panel(PAPER if is_selected else CREAM, BURGUNDY if is_selected else GOLD, 3 if is_selected else 1, 11)
+        tile.name = "MobileStampTile_" + id
+        tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        grid.add_child(tile)
+        var contents := VBoxContainer.new()
+        contents.add_theme_constant_override("separation", 2)
+        tile.add_child(contents)
+        var seal := TextureRect.new()
+        seal.name = "MobileSealArt_" + id
+        seal.texture = load("res://assets/illustrated/stamp_%s_small.webp" % id) as Texture2D
+        seal.custom_minimum_size = Vector2(64, 62)
+        seal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        seal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+        contents.add_child(seal)
+        var caption: String = "%s%s\n%d Influence / +%d Strain" % ["SELECTED: " if is_selected else "", str(STAMP_LABELS[id]), int(stamp["cost"]), maxi(1, int(stamp["strain"]) - int(sim.profile.get("audit", 0)))]
+        var button := _button(caption, is_selected, 64)
         button.name = "MobileStamp_" + id
         button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-        button.add_theme_font_size_override("font_size", 15)
+        button.add_theme_font_size_override("font_size", 14)
         button.pressed.connect(_select_stamp.bind(id))
-        grid.add_child(button)
+        contents.add_child(button)
     var active: Dictionary = Simulation.STAMPS[selected_stamp]
     var preview := _panel(CREAM, GOLD, 1, 11)
     preview.name = "MobileStampPreview"
@@ -312,19 +329,13 @@ func _stamps(body: VBoxContainer) -> void:
     var row := HBoxContainer.new()
     row.add_theme_constant_override("separation", 8)
     body.add_child(row)
-    var filed := _button("FILE STAMP", true, 55)
-    filed.name = "MobileFileStampButton"
-    filed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    filed.disabled = not _can_file()
-    filed.pressed.connect(_file_stamp)
-    row.add_child(filed)
-    var undo := _button("UNDO", false, 55)
-    undo.name = "MobileUndoButton"
-    undo.disabled = _filed_count() == 0
-    undo.pressed.connect(_undo)
-    row.add_child(undo)
-    var why := _button("WHY?", false, 55)
+    var change := _button("CHANGE INCIDENT", false, 54)
+    change.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    change.pressed.connect(_change_page.bind("incidents"))
+    row.add_child(change)
+    var why := _button("WHY THIS INCIDENT?", false, 54)
     why.disabled = rule.is_empty()
+    why.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     why.pressed.connect(_show_evidence.bind(selected_event))
     row.add_child(why)
 
