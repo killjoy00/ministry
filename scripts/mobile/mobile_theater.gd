@@ -143,7 +143,7 @@ func _build() -> void:
     var stamp := TextureRect.new()
     stamp.name = "MobileStampSlam"
     var seal: String = str(filings[0].get("stamp", "nudge")) if not filings.is_empty() else "nudge"
-    stamp.texture = load("res://assets/illustrated/stamp_%s_small.webp" % STAMPS.get(seal, "nudge")) as Texture2D
+    stamp.texture = load("res://assets/illustrated/stamp_%s.webp" % STAMPS.get(seal, "nudge")) as Texture2D
     stamp.custom_minimum_size = Vector2(66, 66)
     stamp.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     stamp.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
