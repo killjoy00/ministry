@@ -48,7 +48,7 @@ func _check_mobile() -> void:
     _assert_readable_body(ui, "incidents")
     # Instruction screens must be readable against the dark page, not just
     # structurally present in the Godot scene.
-    for screen in ["help", "tutorial", "stamps", "log", "town", "evidence"]:
+    for screen in ["help", "tutorial", "stamps", "log", "town", "cast", "settings", "evidence"]:
         ui._change_page(screen)
         await _run_frame()
         _assert_readable_body(ui, screen)
@@ -69,6 +69,7 @@ func _check_mobile() -> void:
     var content_scroll := _find(ui, "MobileContentScroll") as ScrollContainer
     _assert(content_scroll != null and content_scroll.get_global_rect().size.y >= 220.0, "Portrait content viewport occupies usable vertical space")
     _assert(_find(ui, "MobileIncidentFeature") != null, "Incident has an illustrated feature")
+    _assert(_find(ui, "MobileSettingsButton") != null, "Settings are reachable from any active case")
     var character := _find(ui, "MobileIncidentCharacter") as TextureRect
     _assert(character != null and character.texture != null, "The actual illustrated Oddford character is present")
     _assert((_find(ui, "MobileIncidentTown") as TextureRect).texture != null, "Real Oddford town illustration is loaded")
@@ -78,6 +79,8 @@ func _check_mobile() -> void:
     ui._change_page("stamps")
     await _run_frame()
     _assert(_find(ui, "MobileStampPreview") != null, "Probability / cost preview available")
+    var forecast := _find(ui, "MobileRealityForecast") as Label
+    _assert(forecast != null and forecast.text.contains(ui.sim.forecast()), "Mobile uses the actual simulation correction forecast, same as desktop")
     var seal := _find(ui, "MobileSealArt_nudge") as TextureRect
     _assert(seal != null and seal.texture != null, "Original stamp seal art is visible in the chooser")
     _assert(_find(ui, "MobileAdvanceDayButton") == null, "Cannot advance before filing a stamp")
@@ -128,6 +131,8 @@ func _check_mobile() -> void:
     _assert(theater != null, "Mobile theater is mounted as modal")
     var theater_scroll := _find(ui, "MobileTheaterScroll") as ScrollContainer
     _assert(theater_scroll != null and theater_scroll.get_global_rect().size.y >= 220.0, "Theater artwork viewport has usable height")
+    var actor := _find(ui, "MobileBeatActor0") as TextureRect
+    _assert(actor != null and actor.texture != null, "Causality Theater has original character portraits for recorded beats")
     var town := _find(ui, "MobileCausalityTown") as TextureRect
     _assert(town != null and town.texture != null, "Actual illustrated Oddford stage loads in theater")
     if theater != null:
@@ -140,12 +145,44 @@ func _check_mobile() -> void:
     _assert(ui.page == "evidence", "Native evidence view opens")
     ui._change_page("town")
     _assert(ui.page == "town", "Town view available on touch")
+    _assert((_find(ui, "MobileInteractiveTownImage") as TextureRect).texture != null, "Original interactive Oddford map is loaded")
+    _assert(_find(ui, "MobileTownWitnessDocket") != null, "Town has a location-specific incident docket")
+    for district in ["TownHall", "Bakery", "PostOffice", "HighStreet", "PublicGardens", "ParadeHall"]:
+        _assert(_find(ui, "MobileTownLocation" + district) != null, "Town district is selectable: " + district)
+    ui._select_town_location("Bakery")
+    _assert(ui.selected_town_location == "Bakery", "Changing a district updates the selected local office")
+    ui._change_page("cast")
+    _assert(_find(ui, "MobileCastGallery") != null, "Mobile has the desktop cast gallery")
+    for resident in ["gerald", "clerk", "mayor", "reporter", "organizer", "baker"]:
+        var portrait := _find(ui, "MobileResident_" + resident) as TextureRect
+        _assert(portrait != null and portrait.texture != null, "Real cast art available: " + resident)
+    ui._change_page("settings")
+    _assert(_find(ui, "MobileReducedMotionToggle") != null, "Reduced motion preference is controllable")
+    var director := root.get_node_or_null("MusicDirector")
+    if director != null:
+        var old_music: bool = bool(director.get("music_enabled"))
+        var old_volume: float = float(director.get("music_volume"))
+        _assert(_find(ui, "MobileMusicToggle") != null, "Mobile shares desktop music controls")
+        ui._toggle_music()
+        _assert(bool(director.get("music_enabled")) != old_music, "Music toggle updates real MusicDirector")
+        ui._toggle_music()
+        _assert(bool(director.get("music_enabled")) == old_music, "Music toggle is reversible")
+        ui._adjust_music(-0.10)
+        _assert(float(director.get("music_volume")) <= old_volume, "Music volume is controlled in the real director")
+        director.call("set_music_volume", old_volume)
     ui._change_page("help")
     _assert(ui.page == "help", "Mobile help accessible")
     ui._change_page("tutorial")
     var before: int = ui.sim.profile["merit"]
+    var day_before: int = ui.sim.day
     ui._next_tutorial()
-    _assert(ui.sim.profile["merit"] == before, "Mobile tutorial cannot change player Merit")
+    _assert(ui.practice != null and ui.tutorial_step == 1, "Briefing starts a separate seeded practice simulation")
+    _assert(ui.practice.pending.is_empty(), "Practice starts with no pre-filed stamp")
+    ui._next_tutorial()
+    _assert(str(ui.practice.pending.get("stamp", "")) == "nudge" and str(ui.practice.pending.get("target", "")) == "sandwich", "Player action files the actual practice Nudge")
+    ui._next_tutorial()
+    _assert(ui.tutorial_step == 3 and ui.practice.day > 1, "Practice advances only after explicit player action")
+    _assert(ui.sim.profile["merit"] == before and ui.sim.day == day_before and ui.sim.pending.is_empty(), "Practice cannot change real progress, Merit or stamp filings")
     ui._finish_tutorial()
     _assert(ui.page == "incidents", "Tutorial exits to the real case")
     # Test screen-size changes without losing the actual case state.
