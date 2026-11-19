@@ -93,12 +93,31 @@ func _go() -> void:
     await _capture("07-oddford.png")
     game._change_page("ministry")
     await _capture("08-departments.png")
+    game._change_page("help")
+    await _capture("09-how-to-play.png")
+    game._change_page("tutorial")
+    await _capture("10-first-day-briefing.png")
+    game._change_page("cast")
+    await _capture("11-residents.png")
+    game._change_page("settings")
+    await _capture("12-office-settings.png")
+    game._change_page("town")
+    game._select_town_location("Bakery")
+    await _capture("13-local-district.png")
+    # Advance a separate real seeded practice simulation until it actually
+    # settles. Never fake a case result just to populate a store image.
+    var closed_case := Simulation.new(capture_seed, false)
+    while closed_case.status == "active":
+        closed_case.advance_day()
+    game.sim = closed_case
+    game._change_page("assignments")
+    await _capture("14-next-assignments.png")
     root.remove_child(game)
     game.queue_free()
     for error in errors:
         printerr("STORE CAPTURE ERROR: ", error)
     if errors.is_empty():
-        print("PASS: eight genuine mobile gameplay store screenshots")
+        print("PASS: 14 genuine mobile gameplay store screenshots")
         quit(0)
     else:
         quit(1)

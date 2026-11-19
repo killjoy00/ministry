@@ -7,6 +7,7 @@ on:
       - 'scenes/mobile_main.tscn'
       - 'assets/mobile/**'
       - 'tests/mobile_smoke.gd'
+      - 'scripts/qa/android_emulator_smoke.sh'
       - 'project.godot'
       - 'export_presets.cfg'
       - '.github/workflows/mobile-builds.yml'
@@ -16,6 +17,7 @@ on:
       - 'scripts/mobile/**'
       - 'scenes/mobile_main.tscn'
       - 'assets/mobile/**'
+      - 'scripts/qa/android_emulator_smoke.sh'
       - 'project.godot'
       - 'export_presets.cfg'
 permissions:
@@ -82,6 +84,15 @@ jobs:
           EOF
           godot --headless --path . --editor --quit
           keytool -genkeypair -noprompt -keystore /tmp/ministry-debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Ministry,C=US"
+      - name: Enable x86_64 in the QA-only APK for a real Android emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The minimal Godot CI image has sed but no Python runtime.
+          sed -i '/^\[preset\.2\.options\]/,/^\[preset\.3\]/{s/^architectures\/x86_64=false$/architectures\/x86_64=true/;}' export_presets.cfg
+          grep -Fq 'architectures/x86_64=true' export_presets.cfg
+          # Keep the signed Play AAB arm64-only. We change only QA debug.
+          grep -A 35 -F '[preset.4.options]' export_presets.cfg | grep -Fq 'architectures/x86_64=false'
       - name: Build installable Android QA APK
         shell: bash
         run: |
@@ -99,3 +110,45 @@ jobs:
           path: build/ministry-android-debug.apk
           retention-days: 14
           if-no-files-found: error
+
+  android-emulator:
+    name: Launch and play the actual Android APK on an Android 13 emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: [android-debug]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ministry-android-debug-${{ github.run_number }}
+          path: build
+      - name: Enable KVM acceleration
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install, launch, tap through gameplay, test Android Back and resume
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          # Older AOSP device images use fewer resources on hosted runners;
+          # Android 15/16 remain covered by production target-SDK exports.
+          target: default
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          # Godot 4.7.2 GLES3 has a confirmed upstream SwiftShader uniform-limit
+          # failure in this exact runner/emulator combination (godotengine#109550).
+          # Use Mesa Lavapipe instead so a gray-screen from SwiftShader doesn't
+          # masquerade as an app regression. Still fail on blank/untappable UI.
+          emulator-options: -no-window -gpu lavapipe -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/qa/android_emulator_smoke.sh
+      - name: Preserve genuine Android emulator screenshots and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ministry-android-native-qa-${{ github.run_number }}
+          path: build/android-emulator/*
+          retention-days: 21
+          if-no-files-found: warn

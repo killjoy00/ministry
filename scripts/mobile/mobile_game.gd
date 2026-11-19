@@ -16,8 +16,15 @@ const GOLD = Color("#c49a58")
 const BURGUNDY = Color("#7e454c")
 const GREEN = Color("#426e60")
 const MUTED = Color("#6c6a60")
+# Light ink for text directly on the dark page, unlike cream-paper cards.
+const LIGHT_TEXT = Color("#f5e8ca")
+const LIGHT_SUB = Color("#d5e0d3")
+const LIGHT_ACCENT = Color("#f0ca90")
+const LIGHT_SUCCESS = Color("#b6d9c4")
 const TUTORIAL_PATH = "user://ministry_briefing.json"
 const STAMP_LABELS = {"nudge":"NUDGE", "misfile":"MISFILE", "reschedule":"DELAY", "domino":"DOMINO"}
+const TOWN_LOCATIONS = ["Town Hall", "Bakery", "Post Office", "High Street", "Public Gardens", "Parade Hall"]
+const RESIDENTS = [["gerald", "GERALD / MAYORAL ASPIRANT"], ["clerk", "MISS QUILL / MINISTRY CLERK"], ["mayor", "HUXLEY / INCUMBENT MAYOR"], ["reporter", "THE REPORTER / OBSERVER"], ["organizer", "PIP / PETITION ORGANIZER"], ["baker", "NORA / BAKER"]]
 
 var sim: CaseSimulation
 var page: String = "incidents"
@@ -27,6 +34,7 @@ var evidence_id: String = ""
 var feedback: String = ""
 var theater: Control = null
 var confirm_unstamped_day: bool = false
+var selected_town_location: String = "Town Hall"
 var tutorial_step: int = 0
 var practice: CaseSimulation = null
 var first_focus: Button
@@ -35,6 +43,9 @@ var _last_height: int = 0
 
 func _ready() -> void:
     name = "MinistryMobileGame"
+    # Disable Android's default Back=quit behavior at runtime too; some
+    # launch environments do not carry through the project setting.
+    get_tree().set_quit_on_go_back(false)
     sim = Simulation.new()
     if DisplayServer.get_name() != "headless" and sim.persist and sim.status == "active" and sim.day == 1 and int(sim.profile.get("completed", 0)) == 0 and not FileAccess.file_exists(TUTORIAL_PATH):
         page = "tutorial"
@@ -50,16 +61,20 @@ func _size_changed() -> void:
 
 func _notification(what: int) -> void:
     if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-        if theater != null:
-            _close_theater()
-        elif ["evidence", "town", "help", "tutorial"].has(page):
-            _change_page("incidents")
-        elif ["ministry", "assignments"].has(page):
-            _change_page("results")
-        elif page == "stamps":
-            _change_page("incidents")
-        else:
-            _change_page("incidents")
+        _handle_android_back()
+
+func _handle_android_back() -> void:
+    # Android Back navigates the case; it must not kill the app by default.
+    if theater != null:
+        _close_theater()
+    elif page == "tutorial":
+        _finish_tutorial()
+    elif ["evidence", "town", "cast", "settings", "help", "stamps", "log"].has(page):
+        _change_page("incidents" if sim.status == "active" else "results")
+    elif ["ministry", "assignments"].has(page):
+        _change_page("results")
+    else:
+        _change_page("incidents" if sim.status == "active" else "results")
 
 func _render() -> void:
     if sim == null:
@@ -122,6 +137,8 @@ func _render() -> void:
         "log": _log(body)
         "evidence": _evidence(body)
         "town": _town(body)
+        "cast": _cast(body)
+        "settings": _settings(body)
         "ministry": _ministry(body)
         "assignments": _assignments(body)
         "tutorial": _tutorial(body)
@@ -166,6 +183,12 @@ func _header(parent: VBoxContainer) -> void:
     help.custom_minimum_size = Vector2(43, 42)
     help.pressed.connect(_change_page.bind("help"))
     top.add_child(help)
+    var settings := _button("♪", false, 42)
+    settings.name = "MobileSettingsButton"
+    settings.tooltip_text = "Office music and accessibility settings"
+    settings.custom_minimum_size = Vector2(43, 42)
+    settings.pressed.connect(_change_page.bind("settings"))
+    top.add_child(settings)
     col.add_child(_label(str(sim.case_info.get("title", "Official Assignment")), 19, CREAM, true))
     var deadline: int = int(sim.case_info.get("deadline", 7))
     var snapshot: String = "DAY %d / %d    |    %s %d/%d    |    INFLUENCE %d" % [mini(sim.day, deadline), deadline, str(sim.case_info.get("metric", "MOMENTUM")), sim.support, int(sim.case_info.get("required_support", 15)), sim.influence]
@@ -239,9 +262,9 @@ func _incidents(body: VBoxContainer) -> void:
         feature_row.add_child(actor)
         frame.add_child(_label(str(current["text"]), 15, MUTED))
     if available.is_empty():
-        body.add_child(_label("No new incidents are eligible. Advance the day to resolve the town's business.", 17, MUTED))
+        body.add_child(_label("No new incidents are eligible. Advance the day to resolve the town's business.", 17, LIGHT_SUB))
     else:
-        body.add_child(_label("AVAILABLE OPPORTUNITIES  /  TAP TO SELECT", 14, BURGUNDY, true))
+        body.add_child(_label("AVAILABLE OPPORTUNITIES  /  TAP TO SELECT", 14, LIGHT_ACCENT, true))
         for rule in available:
             var id: String = str(rule["id"])
             var already: bool = id == str(sim.pending.get("target", "")) or id == str(sim.second_pending.get("target", ""))
@@ -276,7 +299,7 @@ func _stamps(body: VBoxContainer) -> void:
         text.add_child(_label(str(rule["title"]), 19, INK, true))
         text.add_child(_label(str(rule.get("place", "Oddford")), 14, MUTED))
     else:
-        body.add_child(_label("There are no eligible incidents. You may advance without a stamp.", 17, MUTED))
+        body.add_child(_label("There are no eligible incidents. You may advance without a stamp.", 17, LIGHT_SUB))
     var grid := GridContainer.new()
     grid.name = "MobileStampSealGallery"
     grid.columns = 2
@@ -295,7 +318,7 @@ func _stamps(body: VBoxContainer) -> void:
         tile.add_child(contents)
         var seal := TextureRect.new()
         seal.name = "MobileSealArt_" + id
-        seal.texture = load("res://assets/illustrated/stamp_%s_small.webp" % id) as Texture2D
+        seal.texture = load("res://assets/illustrated/stamp_%s.webp" % id) as Texture2D
         seal.custom_minimum_size = Vector2(64, 62)
         seal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
         seal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -317,6 +340,10 @@ func _stamps(body: VBoxContainer) -> void:
     info.add_child(_label("EXPECTED EFFECT  /  %s" % str(active["name"]).to_upper(), 14, BURGUNDY, true))
     info.add_child(_label(_preview(rule), 17, INK, true))
     info.add_child(_label("Cost on Advance: %d Influence, +%d Reality Strain" % [int(active["cost"]), maxi(1, int(active["strain"]) - int(sim.profile.get("audit", 0)))], 14, MUTED))
+    var outlook: String = sim.forecast()
+    var forecast := _label("REALITY FORECAST  /  " + outlook, 14, BURGUNDY, true)
+    forecast.name = "MobileRealityForecast"
+    info.add_child(forecast)
     var status: String = "%d OF %d INCIDENTS FILED TODAY" % [_filed_count(), 2 if sim.has_department("double_booking") else 1]
     info.add_child(_label(status, 14, GREEN, true))
     for pending in [sim.pending, sim.second_pending]:
@@ -343,12 +370,12 @@ func _log(body: VBoxContainer) -> void:
     _section(body, "THE OFFICIAL CHRONICLE", "WHAT HAPPENED  /  AND WHY")
     var summaries: Array = sim.history_summary(40)
     if summaries.is_empty():
-        body.add_child(_label("No incidents yet. The stationery is immaculate.", 17, MUTED))
+        body.add_child(_label("No incidents yet. The stationery is immaculate.", 17, LIGHT_SUB))
     for entry in summaries:
         var caption: String = "DAY %d  /  %s\n%s" % [int(entry["day"]), str(entry["title"]), str(entry.get("because", ""))]
         var id: String = str(entry.get("id", ""))
         if sim.get_rule(id).is_empty():
-            body.add_child(_label(caption, 15, MUTED))
+            body.add_child(_label(caption, 15, LIGHT_SUB))
         else:
             var btn := _button(caption, false, 66)
             btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -367,24 +394,24 @@ func _evidence(body: VBoxContainer) -> void:
     card.add_child(text)
     text.add_child(_label(str(info["description"]), 17, INK))
     text.add_child(_label("NATURAL CHANCE: %d%%  /  %s" % [roundi(float(info["chance"])*100.0), "OCCURRED" if bool(info["occurred"]) else "POSSIBLE, NOT CONFIRMED"], 14, GREEN if bool(info["occurred"]) else BURGUNDY, true))
-    body.add_child(_label("REQUIRED CONDITIONS", 16, BURGUNDY, true))
+    body.add_child(_label("REQUIRED CONDITIONS", 16, LIGHT_ACCENT, true))
     if (info["conditions"] as Array).is_empty():
-        body.add_child(_label("No prerequisites. This can start a chain.", 15, MUTED))
+        body.add_child(_label("No prerequisites. This can start a chain.", 15, LIGHT_SUB))
     for requirement in info["conditions"]:
         var condition: Dictionary = requirement
         var line: String = "%s  %s [%s]" % ["OK" if bool(condition["met"]) else "MISSING", str(condition["fact"]), str(condition["kind"])]
         if not str(condition.get("source", "")).is_empty():
             line += " - from " + str(condition["source"])
-        body.add_child(_label(line, 15, GREEN if bool(condition["met"]) else MUTED))
-    body.add_child(_label("POSSIBLE CONSEQUENCES  /  NOT GUARANTEED", 16, BURGUNDY, true))
+        body.add_child(_label(line, 15, LIGHT_SUCCESS if bool(condition["met"]) else LIGHT_SUB))
+    body.add_child(_label("POSSIBLE CONSEQUENCES  /  NOT GUARANTEED", 16, LIGHT_ACCENT, true))
     for output in info["outcomes"]:
-        body.add_child(_label("- " + str(output), 15, INK))
+        body.add_child(_label("- " + str(output), 15, LIGHT_SUB))
     if not (info["alternative"] as Array).is_empty():
-        body.add_child(_label("MISFILE WOULD REPLACE THESE WITH:", 15, BURGUNDY, true))
+        body.add_child(_label("MISFILE WOULD REPLACE THESE WITH:", 15, LIGHT_ACCENT, true))
         for output in info["alternative"]:
-            body.add_child(_label("- " + str(output), 15, INK))
+            body.add_child(_label("- " + str(output), 15, LIGHT_SUB))
     var branches: Array = info["branches"]
-    body.add_child(_label("MAY HELP ENABLE %d OTHER INCIDENTS" % branches.size(), 16, BURGUNDY, true))
+    body.add_child(_label("MAY HELP ENABLE %d OTHER INCIDENTS" % branches.size(), 16, LIGHT_ACCENT, true))
     for j in range(mini(branches.size(), 16)):
         var downstream: Dictionary = branches[j]
         var desc: String = "%s  /  %s route" % [str(downstream["title"]), str(downstream["route"])]
@@ -395,33 +422,271 @@ func _evidence(body: VBoxContainer) -> void:
         btn.pressed.connect(_show_evidence.bind(str(downstream["id"])))
         body.add_child(btn)
     if bool(info["occurred"]):
-        body.add_child(_label("CONFIRMED PARENT EVENTS", 16, GREEN, true))
+        body.add_child(_label("CONFIRMED PARENT EVENTS", 16, LIGHT_SUCCESS, true))
         for parent in info["parents"]:
-            body.add_child(_label("- " + str(parent["title"]), 15, GREEN))
+            body.add_child(_label("- " + str(parent["title"]), 15, LIGHT_SUCCESS))
+
 
 func _town(body: VBoxContainer) -> void:
-    _section(body, "A WINDOW ON ODDFORD", "THIS TOWN IS OPERATING WITHOUT ADULT SUPERVISION")
-    var panel := _panel(PAPER, GOLD, 2, 10)
-    body.add_child(panel)
-    var art := TextureRect.new()
-    art.texture = load("res://assets/illustrated/oddford_square.webp") as Texture2D
-    art.custom_minimum_size.y = 260
-    art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-    art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-    panel.add_child(art)
-    body.add_child(_label("The town responds to real recorded incidents. Inspect the Chronicle to see what actually happened.", 16, MUTED))
-    var latest: Array = sim.history_summary(8)
-    for entry in latest:
-        var rule: Dictionary = sim.get_rule(str(entry.get("id", "")))
-        if rule.is_empty():
+    _section(body, "ODDFORD / LIVE SURVEILLANCE", "SIX DISTRICTS  /  REAL INCIDENTS, NOT A SECOND SIMULATION")
+    var picture := _panel(PAPER, GOLD, 2, 11)
+    body.add_child(picture)
+    var map_canvas := Control.new()
+    map_canvas.name = "MobileTownMapCanvas"
+    map_canvas.custom_minimum_size.y = 230
+    map_canvas.clip_contents = true
+    picture.add_child(map_canvas)
+    var map := TextureRect.new()
+    map.name = "MobileInteractiveTownImage"
+    map.texture = load("res://assets/illustrated/oddford_square.webp") as Texture2D
+    map.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    map.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+    map.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    map.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    map_canvas.add_child(map)
+    # These are the exact six district positions used by LivingTown on desktop.
+    # The pins are touch targets; a text list below remains available.
+    var district_points := [Vector2(.51, .54), Vector2(.89, .57), Vector2(.17, .54), Vector2(.38, .77), Vector2(.69, .77), Vector2(.46, .38)]
+    for i in range(TOWN_LOCATIONS.size()):
+        var place: String = TOWN_LOCATIONS[i]
+        var pin := _button(["TH", "BK", "PO", "HS", "PG", "PH"][i], place == selected_town_location, 44)
+        pin.name = "MobileTownPin_" + place.replace(" ", "")
+        pin.tooltip_text = place
+        pin.add_theme_font_size_override("font_size", 14)
+        pin.add_theme_color_override("font_color", CREAM)
+        var seal_style := StyleBoxFlat.new()
+        seal_style.bg_color = BURGUNDY if place == selected_town_location else Color("#30484ce8")
+        seal_style.border_color = GOLD
+        seal_style.set_border_width_all(2)
+        seal_style.set_corner_radius_all(24)
+        seal_style.set_content_margin_all(2)
+        pin.add_theme_stylebox_override("normal", seal_style)
+        var hover_seal := seal_style.duplicate() as StyleBoxFlat
+        hover_seal.bg_color = BURGUNDY
+        pin.add_theme_stylebox_override("hover", hover_seal)
+        pin.add_theme_stylebox_override("pressed", hover_seal)
+        pin.add_theme_stylebox_override("focus", hover_seal)
+        pin.anchor_left = district_points[i].x
+        pin.anchor_right = district_points[i].x
+        pin.anchor_top = district_points[i].y
+        pin.anchor_bottom = district_points[i].y
+        pin.offset_left = -22
+        pin.offset_right = 22
+        pin.offset_top = -22
+        pin.offset_bottom = 22
+        pin.pressed.connect(_select_town_location.bind(place))
+        map_canvas.add_child(pin)
+    body.add_child(_label("VISIT A DISTRICT  /  TAP TO INSPECT ITS LIVE FILE", 14, LIGHT_ACCENT, true))
+    var districts := GridContainer.new()
+    districts.name = "MobileTownDistricts"
+    districts.columns = 2
+    districts.add_theme_constant_override("h_separation", 7)
+    districts.add_theme_constant_override("v_separation", 7)
+    body.add_child(districts)
+    for place in TOWN_LOCATIONS:
+        var waiting: int = 0
+        for rule in sim.available_events():
+            if str(rule.get("place", "")) == place:
+                waiting += 1
+        var nameplate := _button("%s\n%d AVAILABLE" % [place.to_upper(), waiting], place == selected_town_location, 62)
+        nameplate.name = "MobileTownLocation" + place.replace(" ", "")
+        nameplate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        nameplate.pressed.connect(_select_town_location.bind(place))
+        districts.add_child(nameplate)
+    var docket := _panel(CREAM, GOLD, 2, 11)
+    docket.name = "MobileTownWitnessDocket"
+    body.add_child(docket)
+    var details := VBoxContainer.new()
+    details.add_theme_constant_override("separation", 7)
+    docket.add_child(details)
+    details.add_child(_label("LOCAL OFFICE  /  " + selected_town_location.to_upper(), 18, BURGUNDY, true))
+    var available: int = 0
+    for rule in sim.available_events():
+        if str(rule.get("place", "")) != selected_town_location:
             continue
-        var item := _button("%s  /  %s" % [str(rule.get("place", "Oddford")), str(entry["title"])], false, 54)
+        available += 1
+        var entry := HBoxContainer.new()
+        entry.add_theme_constant_override("separation", 8)
+        details.add_child(entry)
+        entry.add_child(_art(_family(str(rule["id"])), Vector2(74, 74)))
+        var file := VBoxContainer.new()
+        file.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        entry.add_child(file)
+        file.add_child(_label(str(rule["title"]), 17, INK, true))
+        file.add_child(_label("%d%% chance if attempted" % roundi(float(rule["chance"]) * 100.0), 14, GREEN))
+        file.add_child(_label(str(rule["text"]), 14, MUTED))
+        var select := _button("CHOOSE THIS INCIDENT", true, 52)
+        select.name = "MobileTownChoose_" + str(rule["id"])
+        select.disabled = sim.status != "active"
+        select.pressed.connect(_select_town_incident.bind(str(rule["id"])))
+        file.add_child(select)
+        var inspect := _button("INSPECT ITS CAUSES", false, 48)
+        inspect.pressed.connect(_show_evidence.bind(str(rule["id"])))
+        file.add_child(inspect)
+    if available == 0:
+        details.add_child(_label("No available incidents here. An earlier coincidence may open a new route.", 15, MUTED))
+    var latest: Array = []
+    for entry in sim.history_summary(40):
+        var rule: Dictionary = sim.get_rule(str(entry.get("id", "")))
+        if str(rule.get("place", "")) == selected_town_location:
+            latest.append(entry)
+        if latest.size() >= 4:
+            break
+    body.add_child(_label("RECORDED IN THIS DISTRICT  /  " + str(latest.size()) + " RECENT FILES", 14, LIGHT_ACCENT, true))
+    if latest.is_empty():
+        body.add_child(_label("No recorded incidents here yet.", 15, LIGHT_SUB))
+    for entry in latest:
+        var item := _button("DAY %d  /  %s\n%s" % [int(entry["day"]), str(entry["title"]), str(entry.get("because", ""))], false, 70)
+        item.alignment = HORIZONTAL_ALIGNMENT_LEFT
         item.pressed.connect(_show_evidence.bind(str(entry["id"])))
         body.add_child(item)
-    var go := _button("BACK TO INCIDENTS", true, 56)
-    go.pressed.connect(_change_page.bind("incidents"))
-    body.add_child(go)
+    var archived_day: int = _last_recorded_day()
+    var replay := _button("REPLAY DAY %d / ACTUAL RECORDED EVENTS" % archived_day if archived_day > 0 else "NO RECORDED DAY TO REPLAY", true, 58)
+    replay.name = "MobileTownReplayButton"
+    replay.disabled = archived_day == 0
+    replay.pressed.connect(_open_town_replay)
+    body.add_child(replay)
+    var cast := _button("MEET ODDFORD'S RESIDENTS", false, 56)
+    cast.name = "MobileTownResidentsButton"
+    cast.pressed.connect(_change_page.bind("cast"))
+    body.add_child(cast)
 
+func _select_town_location(place: String) -> void:
+    selected_town_location = place
+    _render()
+    # Bring the new witness report into view on a phone instead of leaving
+    # players staring at the top of a long map after tapping a district.
+    var scroll := find_child("MobileContentScroll", true, false) as ScrollContainer
+    var docket := find_child("MobileTownWitnessDocket", true, false) as Control
+    if scroll != null and docket != null:
+        await get_tree().process_frame
+        if is_instance_valid(scroll) and is_instance_valid(docket):
+            scroll.ensure_control_visible(docket)
+
+func _select_town_incident(id: String) -> void:
+    selected_event = id
+    _change_page("stamps")
+
+func _last_recorded_day() -> int:
+    for i in range(sim.history.size() - 1, -1, -1):
+        var event: Dictionary = sim.history[i]
+        var id: String = str(event.get("id", ""))
+        if not sim.get_rule(id).is_empty() or id.begins_with("correction_"):
+            return int(event.get("day", 0))
+    return 0
+
+func _open_town_replay() -> void:
+    var archived_day: int = _last_recorded_day()
+    if archived_day == 0:
+        return
+    var real_events: Array = []
+    for event in sim.history:
+        var id: String = str(event.get("id", ""))
+        if int(event.get("day", 0)) == archived_day and (not sim.get_rule(id).is_empty() or id.begins_with("correction_")):
+            real_events.append(event)
+    if real_events.is_empty():
+        return
+    theater = MobileTheater.new()
+    # Historical filings and intermediate Strain are not saved; never invent
+    # those values or present the replay as an unstamped/natural-only day.
+    theater.configure(sim, real_events, [], archived_day, sim.support, sim.support, sim.strain, sim.strain, true)
+    theater.close_requested.connect(_close_theater)
+    theater.log_requested.connect(_open_theater_log)
+    theater.inspect_requested.connect(_open_theater_evidence)
+    add_child(theater)
+
+func _cast(body: VBoxContainer) -> void:
+    _section(body, "REGISTER OF PECULIAR RESIDENTS", "THE ILLUSTRATED CAST OF ODDFORD")
+    var gallery := GridContainer.new()
+    gallery.name = "MobileCastGallery"
+    gallery.columns = 2
+    gallery.add_theme_constant_override("h_separation", 9)
+    gallery.add_theme_constant_override("v_separation", 9)
+    body.add_child(gallery)
+    for person in RESIDENTS:
+        var panel := _panel(CREAM, GOLD, 2, 10)
+        panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        gallery.add_child(panel)
+        var frame := VBoxContainer.new()
+        frame.add_theme_constant_override("separation", 4)
+        panel.add_child(frame)
+        var portrait := TextureRect.new()
+        portrait.name = "MobileResident_" + str(person[0])
+        portrait.texture = load("res://assets/illustrated/portrait_%s.webp" % str(person[0])) as Texture2D
+        portrait.custom_minimum_size.y = 154
+        portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        frame.add_child(portrait)
+        var title := _label(str(person[1]), 15, BURGUNDY, true)
+        title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+        frame.add_child(title)
+    var return_to_town := _button("BACK TO ODDFORD", true, 56)
+    return_to_town.pressed.connect(_change_page.bind("town"))
+    body.add_child(return_to_town)
+
+func _settings(body: VBoxContainer) -> void:
+    _section(body, "OFFICE SETTINGS", "THE SAME AUDIO AND ACCESSIBILITY PREFERENCES AS DESKTOP")
+    var director := get_node_or_null("/root/MusicDirector")
+    var music := _panel(CREAM, GOLD, 2, 10)
+    body.add_child(music)
+    var controls := VBoxContainer.new()
+    music.add_child(controls)
+    controls.add_child(_label("ODDFORD'S ORIGINAL WALTZ", 18, BURGUNDY, true))
+    if director == null:
+        controls.add_child(_label("Audio controls are not available in this environment.", 15, MUTED))
+    else:
+        var enabled: bool = bool(director.get("music_enabled"))
+        var volume: int = roundi(float(director.get("music_volume")) * 100.0)
+        var toggle := _button("MUSIC: ON" if enabled else "MUSIC: OFF", enabled, 56)
+        toggle.name = "MobileMusicToggle"
+        toggle.pressed.connect(_toggle_music)
+        controls.add_child(toggle)
+        var row := HBoxContainer.new()
+        row.add_theme_constant_override("separation", 8)
+        controls.add_child(row)
+        var quieter := _button("QUIETER", false, 54)
+        quieter.name = "MobileMusicVolumeDown"
+        quieter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        quieter.disabled = volume == 0
+        quieter.pressed.connect(_adjust_music.bind(-0.10))
+        row.add_child(quieter)
+        var louder := _button("LOUDER", false, 54)
+        louder.name = "MobileMusicVolumeUp"
+        louder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        louder.disabled = volume == 100
+        louder.pressed.connect(_adjust_music.bind(0.10))
+        row.add_child(louder)
+        controls.add_child(_label("MUSIC VOLUME  /  %d%%" % volume, 15, MUTED, true))
+    var cfg := ConfigFile.new()
+    var reduced: bool = false
+    if cfg.load("user://ministry_visuals.cfg") == OK:
+        reduced = bool(cfg.get_value("accessibility", "reduced_motion", false))
+    var motion := _button("REDUCED MOTION: ON" if reduced else "REDUCED MOTION: OFF", reduced, 56)
+    motion.name = "MobileReducedMotionToggle"
+    motion.pressed.connect(_toggle_reduced_motion)
+    body.add_child(motion)
+    body.add_child(_label("When enabled, Causality Theater shows the entire register without pans or animated reveals. This preference is saved on this device.", 15, LIGHT_SUB))
+
+func _toggle_music() -> void:
+    var director := get_node_or_null("/root/MusicDirector")
+    if director == null:
+        return
+    director.call("set_music_enabled", not bool(director.get("music_enabled")))
+    _render()
+
+func _adjust_music(delta: float) -> void:
+    var director := get_node_or_null("/root/MusicDirector")
+    if director == null:
+        return
+    director.call("set_music_volume", float(director.get("music_volume")) + delta)
+    _render()
+
+func _toggle_reduced_motion() -> void:
+    var cfg := ConfigFile.new()
+    cfg.load("user://ministry_visuals.cfg")
+    cfg.set_value("accessibility", "reduced_motion", not bool(cfg.get_value("accessibility", "reduced_motion", false)))
+    cfg.save("user://ministry_visuals.cfg")
+    _render()
 func _results(body: VBoxContainer) -> void:
     _section(body, "CASE CLOSED" if sim.status == "won" else "CASE FILED AS INCOMPLETE", str(sim.last_outcome))
     var portrait := TextureRect.new()
@@ -430,7 +695,7 @@ func _results(body: VBoxContainer) -> void:
     portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
     body.add_child(portrait)
-    body.add_child(_label("MERIT AVAILABLE: %d   /   CASES FILED: %d" % [int(sim.profile["merit"]), int(sim.profile["completed"])], 17, GREEN, true))
+    body.add_child(_label("MERIT AVAILABLE: %d   /   CASES FILED: %d" % [int(sim.profile["merit"]), int(sim.profile["completed"])], 17, LIGHT_SUCCESS, true))
     for kind in ["desk", "ink", "audit"]:
         var price: int = sim.upgrade_cost(kind)
         var level: int = int(sim.profile[kind])
@@ -446,83 +711,191 @@ func _results(body: VBoxContainer) -> void:
     cases.pressed.connect(_change_page.bind("assignments"))
     body.add_child(cases)
 
+
 func _ministry(body: VBoxContainer) -> void:
-    _section(body, "THE MINISTRY", "DEPARTMENT LOADOUT  /  BUY AND ASSIGN BETWEEN CASES")
-    body.add_child(_label("MERIT %d  /  %d OF %d SLOTS ASSIGNED" % [int(sim.profile["merit"]), (sim.profile["equipped"] as Array).size(), sim.department_slots()], 16, GREEN, true))
-    for id in Departments.ORDER:
-        var info: Dictionary = Departments.get_department(id)
+    _section(body, "THE MINISTRY / ORGANIZATIONAL CHART", "LICENSE OFFICES PERMANENTLY  /  ASSIGN THEM BETWEEN CASES")
+    var masthead := _panel(PAPER, GOLD, 2, 10)
+    body.add_child(masthead)
+    var heading := HBoxContainer.new()
+    heading.add_theme_constant_override("separation", 10)
+    masthead.add_child(heading)
+    var seal := TextureRect.new()
+    seal.texture = load("res://assets/seal.svg") as Texture2D
+    seal.custom_minimum_size = Vector2(62, 62)
+    seal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    seal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+    heading.add_child(seal)
+    var info := VBoxContainer.new()
+    info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    heading.add_child(info)
+    info.add_child(_label(sim.rank_title(), 17, BURGUNDY, true))
+    info.add_child(_label("%d MERIT  /  %d OF %d OFFICES ASSIGNED" % [int(sim.profile["merit"]), (sim.profile["equipped"] as Array).size(), sim.department_slots()], 14, GREEN, true))
+    body.add_child(_label("Effects are locked when a case starts. Only selected offices run; shared automatic approvals are limited.", 15, LIGHT_SUB))
+    var faces: Array[String] = ["clerk", "reporter", "mayor", "organizer", "clerk", "reporter", "baker", "reporter", "mayor", "gerald", "organizer", "gerald"]
+    for index in range(Departments.ORDER.size()):
+        var id: String = str(Departments.ORDER[index])
+        var spec: Dictionary = Departments.get_department(id)
         var owned: bool = sim.department_owned(id)
         var equipped: bool = (sim.profile["equipped"] as Array).has(id)
-        var status: String = "ASSIGNED" if equipped else "OWNED" if owned else "%d MERIT  /  %d CASES" % [int(info["cost"]), int(info["cases"])]
-        var panel := _panel(CREAM, GOLD if equipped else MUTED, 2 if equipped else 1, 9)
+        var active: bool = sim.has_department(id)
+        var panel := _panel(CREAM if owned else PAPER, GREEN if equipped else GOLD, 3 if equipped else 1, 10)
+        panel.name = "MobileDepartmentDossier_" + id
         body.add_child(panel)
         var col := VBoxContainer.new()
+        col.add_theme_constant_override("separation", 4)
         panel.add_child(col)
-        col.add_child(_label(str(info["name"]), 18, INK, true))
-        col.add_child(_label(str(info["detail"]), 14, MUTED))
-        var action := _button(status + ("  /  REMOVE" if equipped else "  /  ASSIGN" if owned else "  /  BUY"), equipped, 50)
-        action.disabled = sim.status == "active" or (not owned and (int(sim.profile["completed"]) < int(info["cases"]) or int(sim.profile["merit"]) < int(info["cost"]))) or (owned and not equipped and (sim.profile["equipped"] as Array).size() >= sim.department_slots())
+        var row := HBoxContainer.new()
+        row.add_theme_constant_override("separation", 9)
+        col.add_child(row)
+        var portrait := TextureRect.new()
+        portrait.name = "MobileDepartmentPortrait_" + id
+        portrait.texture = load("res://assets/illustrated/portrait_%s.webp" % faces[index]) as Texture2D
+        portrait.custom_minimum_size = Vector2(81, 87)
+        portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        row.add_child(portrait)
+        var detail := VBoxContainer.new()
+        detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        row.add_child(detail)
+        detail.add_child(_label(str(spec["name"]), 18, INK, true))
+        detail.add_child(_label("ACTIVE IN THIS CASE" if active else "ASSIGNED TO NEXT CASE" if equipped else "LICENSED / STANDBY" if owned else "UNLICENSED", 13, GREEN if active or equipped else BURGUNDY, true))
+        detail.add_child(_label(str(spec["detail"]), 14, MUTED))
+        if not owned:
+            detail.add_child(_label("%d MERIT  /  FILE %d CASES TO UNLOCK" % [int(spec["cost"]), int(spec["cases"])], 13, BURGUNDY))
+        var action_caption := "REMOVE OFFICE" if equipped else "ASSIGN OFFICE" if owned else "BUY DEPARTMENT LICENSE"
+        var action := _button(action_caption, equipped, 53)
+        action.name = "MobileDepartmentAction_" + id
+        action.disabled = sim.status == "active" or (not owned and (int(sim.profile["completed"]) < int(spec["cases"]) or int(sim.profile["merit"]) < int(spec["cost"]))) or (owned and not equipped and (sim.profile["equipped"] as Array).size() >= sim.department_slots())
         action.pressed.connect(_department_action.bind(id))
         col.add_child(action)
 
 func _assignments(body: VBoxContainer) -> void:
-    _section(body, "CHOOSE YOUR NEXT CASE", "ONE MINISTRY  /  FOUR UNREASONABLE ASSIGNMENTS")
+    _section(body, "THE MINISTRY / INCOMING ASSIGNMENTS", "FOUR REAL CASE FILES  /  SELECT YOUR NEXT SHIFT")
+    body.add_child(_label("Your selected departments and upgrades are locked into the next case when it begins.", 15, LIGHT_SUB))
     for id in Cases.ORDER:
-        var details: Dictionary = Cases.description(id)
-        var unlocked: bool = sim.case_unlocked(id)
-        var panel := _panel(CREAM, GOLD, 1, 10)
+        var details: Dictionary = Cases.description(str(id))
+        var unlocked: bool = sim.case_unlocked(str(id))
+        var panel := _panel(CREAM, GREEN if unlocked else GOLD, 2 if unlocked else 1, 11)
+        panel.name = "MobileAssignmentDossier_" + str(id)
         body.add_child(panel)
         var col := VBoxContainer.new()
+        col.add_theme_constant_override("separation", 7)
         panel.add_child(col)
-        col.add_child(_label(str(details["title"]), 19, INK, true))
+        col.add_child(_label(str(details["title"]).to_upper(), 20, INK, true))
         col.add_child(_label(str(details["brief"]), 15, MUTED))
-        var btn := _button("START CASE  /  %d DAYS" % int(details["deadline"]) if unlocked else "LOCKED  /  FILE %d CASES" % int(details["unlock_cases"]), unlocked, 54)
-        btn.disabled = not unlocked or sim.status == "active"
-        btn.pressed.connect(_start_case.bind(str(id)))
-        col.add_child(btn)
-
+        var story := HBoxContainer.new()
+        story.add_theme_constant_override("separation", 9)
+        col.add_child(story)
+        var portrait := TextureRect.new()
+        portrait.name = "MobileAssignmentPortrait_" + str(id)
+        portrait.texture = load("res://assets/illustrated/portrait_%s.webp" % str(details["portrait"])) as Texture2D
+        portrait.custom_minimum_size = Vector2(95, 107)
+        portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        story.add_child(portrait)
+        var plan := VBoxContainer.new()
+        plan.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        story.add_child(plan)
+        plan.add_child(_label("%s  /  %d DAYS" % [str(details["difficulty"]), int(details["deadline"])], 14, BURGUNDY, true))
+        plan.add_child(_label("MUST COMPLETE: " + ", ".join(PackedStringArray(details["requirement_labels"])), 14, MUTED))
+        plan.add_child(_label("+%d BONUS MERIT ON SUCCESS" % int(details["merit_bonus"]), 14, GREEN, true))
+        var illustration := TextureRect.new()
+        illustration.name = "MobileAssignmentIllustration_" + str(id)
+        illustration.texture = load("res://assets/illustrated/%s.webp" % str(details["illustration"])) as Texture2D
+        illustration.custom_minimum_size.y = 120
+        illustration.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        illustration.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+        col.add_child(illustration)
+        var start := _button("START CASE" if unlocked else "LOCKED  /  FILE %d CASES TO UNLOCK" % int(details["unlock_cases"]), unlocked, 57)
+        start.name = "MobileAssignmentChoose_" + str(id)
+        start.disabled = not unlocked or sim.status == "active"
+        start.pressed.connect(_start_case.bind(str(id)))
+        col.add_child(start)
 func _tutorial(body: VBoxContainer) -> void:
-    _section(body, "MISS QUILL'S FIRST-DAY BRIEFING", "OPTIONAL PRACTICE  /  YOUR CASE AND MERIT ARE UNAFFECTED")
+    _section(body, "MISS QUILL'S FIRST-DAY BRIEFING", "FOUR ACTUAL PRACTICE ACTIONS  /  YOUR CASE AND MERIT ARE UNTOUCHED")
+    var row := HBoxContainer.new()
+    row.add_theme_constant_override("separation", 9)
+    body.add_child(row)
     var portrait := TextureRect.new()
     portrait.texture = load("res://assets/illustrated/portrait_clerk.webp") as Texture2D
-    portrait.custom_minimum_size.y = 176
+    portrait.custom_minimum_size = Vector2(104, 136)
     portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-    body.add_child(portrait)
-    var titles: Array[String] = ["Your job is to engineer unlikely coincidences.", "Choose an incident and a Nudge.", "File the stamp, then advance the day.", "Inspect the real causal trail."]
-    var text: Array[String] = [
-        "A goose may become mayor, but directly appointing him violates regulation. You'll work indirectly.",
-        "A Nudge raises a chosen incident's chance if it's attempted today. It costs Influence and adds Reality Strain.",
-        "Other incidents occur without your approval. New facts can start a cascade. Stamps don't guarantee every outcome.",
-        "WHY? shows prerequisites and possible results. The Chronicle records what really happened. Nothing in this practice uses your real resources."
-    ]
-    body.add_child(_label("FORM %d OF 4" % (tutorial_step + 1), 15, BURGUNDY, true))
-    body.add_child(_label(titles[tutorial_step], 23, INK, true))
-    body.add_child(_label(text[tutorial_step], 18, MUTED))
-    if tutorial_step == 3 and practice != null:
-        body.add_child(_label("WHAT THE SEPARATE PRACTICE CASE RECORDED", 15, GREEN, true))
-        for event in practice.history:
-            if not (event.get("facts", []) as Array).is_empty():
-                body.add_child(_label("- " + str(event["title"]), 15, INK))
-    var button := _button("NEXT" if tutorial_step < 3 else "GO TO YOUR CASE", true, 60)
-    button.pressed.connect(_next_tutorial)
-    body.add_child(button)
-    var skip := _button("SKIP BRIEFING", false, 52)
-    skip.pressed.connect(_finish_tutorial)
-    body.add_child(skip)
-
+    row.add_child(portrait)
+    var introduction := VBoxContainer.new()
+    introduction.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    row.add_child(introduction)
+    introduction.add_child(_label("FORM %d OF 4" % (tutorial_step + 1), 15, LIGHT_ACCENT, true))
+    var titles: Array[String] = ["WELCOME, PROBATIONARY CLERK", "STEP 1 / FILE A NUDGE", "STEP 2 / ADVANCE THE PRACTICE DAY", "STEP 3 / INSPECT THE EVIDENCE"]
+    introduction.add_child(_label(titles[tutorial_step], 19, LIGHT_TEXT, true))
+    introduction.add_child(_label("Your real assignment stays open. Nothing in this practice spends your Influence, Merit or upgrades.", 14, LIGHT_SUB))
+    if tutorial_step == 0:
+        body.add_child(_label("Your job is to engineer unlikely coincidences. You cannot simply appoint a goose as mayor. Regulations are quite specific.", 17, LIGHT_SUB))
+        body.add_child(_label("You'll nudge a real simulated incident, advance a separate seeded day, then read the recorded consequences.", 16, LIGHT_SUB))
+    else:
+        var incident: Dictionary = practice.get_rule("sandwich") if practice != null else {}
+        var sheet := _panel(CREAM, GOLD, 2, 10)
+        body.add_child(sheet)
+        var col := VBoxContainer.new()
+        sheet.add_child(col)
+        var image := _art("sandwich", Vector2(110, 94))
+        col.add_child(image)
+        col.add_child(_label(str(incident.get("title", "The Sandwich Incident")), 19, INK, true))
+        col.add_child(_label("%d%% NATURAL CHANCE IF ATTEMPTED" % roundi(float(incident.get("chance", 0.0)) * 100.0), 14, GREEN, true))
+        if tutorial_step == 1:
+            col.add_child(_label("File a Nudge. It raises the chance of the incident, but does not guarantee it. The separate practice file will pay its own Influence cost when the day advances.", 16, MUTED))
+            var seal := TextureRect.new()
+            seal.texture = load("res://assets/illustrated/stamp_nudge.webp") as Texture2D
+            seal.custom_minimum_size.y = 75
+            seal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+            seal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+            col.add_child(seal)
+        elif tutorial_step == 2:
+            col.add_child(_label("FILED: NUDGE ON " + str(incident.get("title", "incident")), 16, GREEN, true))
+            col.add_child(_label("Advance this practice day to let the actual seeded simulation resolve incidents, update facts and follow causal links.", 16, MUTED))
+        else:
+            col.add_child(_label("THE REGISTER ACTUALLY RECORDED:", 14, GREEN, true))
+            var listed: int = 0
+            for event in practice.history:
+                if (event.get("facts", []) as Array).is_empty():
+                    continue
+                var sentence: String = str(event["title"])
+                var causes: Array = event.get("causes", [])
+                if not causes.is_empty():
+                    var sources: Array[String] = []
+                    for id in causes:
+                        sources.append(Causal._event_name(practice, str(id)))
+                    sentence += "\nCAUSED BY  /  " + ", ".join(PackedStringArray(sources))
+                col.add_child(_label(sentence, 15, INK))
+                listed += 1
+                if listed >= 5:
+                    break
+            if listed == 0:
+                col.add_child(_label("No confirmed incidents on this day. The stamp was only a probability adjustment.", 15, MUTED))
+            col.add_child(_label("Inspect real cases with WHY? and the Chronicle. Possible follow-ups are not confirmed facts.", 15, MUTED))
+    var buttons: Array[String] = ["START PRACTICE", "FILE THE PRACTICE NUDGE", "ADVANCE PRACTICE DAY", "RETURN TO MY CASE"]
+    var action := _button(buttons[tutorial_step], true, 60)
+    action.name = "MobilePracticeAction"
+    action.pressed.connect(_next_tutorial)
+    body.add_child(action)
 func _help(body: VBoxContainer) -> void:
     _section(body, "HOW TO FILE A COINCIDENCE", "YOUR TEN-SECOND MANUAL")
-    body.add_child(_label("1. Choose up to 1 incident to influence (2 with Double Booking). Other incidents still happen.", 17, INK))
-    body.add_child(_label("2. Choose Nudge, Misfile, Delay, or Domino, then FILE. This only queues your action.", 17, INK))
-    body.add_child(_label("3. Advance the day. Watch Causality Theater, then investigate genuine links in the Chronicle.", 17, INK))
-    body.add_child(_label("4. Win or lose, earn Merit to buy permanent causal departments after the case.", 17, INK))
+    body.add_child(_label("1. Choose up to 1 incident to influence (2 with Double Booking). Other incidents still happen.", 17, LIGHT_SUB))
+    body.add_child(_label("2. Choose Nudge, Misfile, Delay, or Domino, then FILE. This only queues your action.", 17, LIGHT_SUB))
+    body.add_child(_label("3. Advance the day. Watch Causality Theater, then investigate genuine links in the Chronicle.", 17, LIGHT_SUB))
+    body.add_child(_label("4. Win or lose, earn Merit to buy permanent causal departments after the case.", 17, LIGHT_SUB))
     var tutorial := _button("REPLAY MISS QUILL'S BRIEFING", true, 54)
     tutorial.pressed.connect(_change_page.bind("tutorial"))
     body.add_child(tutorial)
     var town := _button("VIEW ODDFORD", false, 54)
     town.pressed.connect(_change_page.bind("town"))
     body.add_child(town)
+    var residents := _button("MEET THE RESIDENTS", false, 54)
+    residents.pressed.connect(_change_page.bind("cast"))
+    body.add_child(residents)
+    var settings := _button("MUSIC AND ACCESSIBILITY", false, 54)
+    settings.pressed.connect(_change_page.bind("settings"))
+    body.add_child(settings)
 
 func _bottom_bar(parent: VBoxContainer) -> void:
     # Keep the selected incident and filed stamp visible next to the real action.
@@ -618,7 +991,13 @@ func _bottom_bar(parent: VBoxContainer) -> void:
         back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         back.pressed.connect(_change_page.bind("incidents" if sim.status == "active" else "results"))
         footer.add_child(back)
-    elif ["help", "town", "tutorial"].has(page):
+    elif page == "tutorial":
+        var skip := _button("SKIP BRIEFING / RETURN TO CASE", true, 60)
+        skip.name = "MobileSkipBriefingFooter"
+        skip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        skip.pressed.connect(_finish_tutorial)
+        footer.add_child(skip)
+    elif ["help", "town", "cast", "settings"].has(page):
         var back := _button("BACK TO CASE", true, 60)
         back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         back.pressed.connect(_change_page.bind("incidents" if sim.status == "active" else "results"))
@@ -764,6 +1143,7 @@ func _advance_day() -> void:
     theater.configure(sim, recorded, filings, day, old_support, sim.support, old_strain, sim.strain)
     theater.close_requested.connect(_close_theater)
     theater.log_requested.connect(_open_theater_log)
+    theater.inspect_requested.connect(_open_theater_evidence)
     add_child(theater)
 
 func _close_theater() -> void:
@@ -779,6 +1159,12 @@ func _open_theater_log() -> void:
         theater = null
     page = "log"
     _render()
+
+func _open_theater_evidence(id: String) -> void:
+    if theater != null:
+        theater.queue_free()
+        theater = null
+    _show_evidence(id)
 
 func _buy_upgrade(kind: String) -> void:
     feedback = "Purchase approved." if sim.buy_upgrade(kind) else "Not enough Merit or already at the maximum level."
@@ -801,17 +1187,27 @@ func _start_case(id: String) -> void:
     page = "incidents"
     _render()
 
-func _next_tutorial() -> void:
-    if tutorial_step < 3:
-        if tutorial_step == 1:
-            practice = Simulation.new(1, false)
-            if practice.stage_stamp("nudge", "sandwich"):
-                practice.advance_day()
-        tutorial_step += 1
-        _render()
-    else:
-        _finish_tutorial()
 
+func _next_tutorial() -> void:
+    match tutorial_step:
+        0:
+            practice = Simulation.new(1, false)
+            tutorial_step = 1
+        1:
+            if practice == null or not practice.stage_stamp("nudge", "sandwich"):
+                feedback = "The practice stamp could not be filed."
+                _render()
+                return
+            tutorial_step = 2
+        2:
+            if practice == null:
+                return
+            practice.advance_day()
+            tutorial_step = 3
+        3:
+            _finish_tutorial()
+            return
+    _render()
 func _finish_tutorial() -> void:
     var file := FileAccess.open(TUTORIAL_PATH, FileAccess.WRITE)
     if file != null:

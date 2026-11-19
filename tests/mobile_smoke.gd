@@ -13,6 +13,25 @@ func _find(node: Node, name: String) -> Node:
         var match_node: Node = _find(child, name)
         if match_node != null: return match_node
     return null
+func _contrast_ratio(foreground: Color, background: Color) -> float:
+    var a: Color = foreground.srgb_to_linear()
+    var b: Color = background.srgb_to_linear()
+    var la: float = a.r * 0.2126 + a.g * 0.7152 + a.b * 0.0722
+    var lb: float = b.r * 0.2126 + b.g * 0.7152 + b.b * 0.0722
+    return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
+
+func _assert_readable_body(ui: Control, page_name: String) -> void:
+    var body: Node = _find(ui, "MobilePageBody")
+    _assert(body != null, page_name + " main page body exists")
+    if body == null:
+        return
+    for node in body.get_children():
+        if node is Label:
+            var label := node as Label
+            var color: Color = label.get_theme_color("font_color")
+            var caption: String = label.text.left(32)
+            _assert(_contrast_ratio(color, Color("#183239")) >= 4.5, page_name + " label contrast: " + caption)
+
 func _run_frame() -> void:
     await process_frame
     await process_frame
@@ -25,10 +44,32 @@ func _check_mobile() -> void:
     ui.page = "incidents"
     ui._render()
     await _run_frame()
+    _assert(not is_quit_on_go_back(), "Android Back does not automatically exit the game")
+    _assert_readable_body(ui, "incidents")
+    # Instruction screens must be readable against the dark page, not just
+    # structurally present in the Godot scene.
+    for screen in ["help", "tutorial", "stamps", "log", "town", "cast", "settings", "evidence"]:
+        ui._change_page(screen)
+        await _run_frame()
+        _assert_readable_body(ui, screen)
+    ui._change_page("tutorial")
+    var skip_tutorial := _find(ui, "MobileSkipBriefingFooter") as Button
+    _assert(skip_tutorial != null, "First-run briefing has an explicit sticky skip action")
+    skip_tutorial.pressed.emit()
+    _assert(ui.page == "incidents" and FileAccess.file_exists("user://ministry_briefing.json"), "Skipping the briefing persists completion and opens the real case")
+    ui._change_page("help")
+    ui._handle_android_back()
+    _assert(ui.page == "incidents", "Android Back returns from Help to current case")
+    ui._change_page("stamps")
+    ui._handle_android_back()
+    _assert(ui.page == "incidents", "Android Back returns from Stamp Desk to incident choice")
+    ui._change_page("incidents")
+    await _run_frame()
     _assert(_find(ui, "MobileSafeSurface") != null, "Portrait-safe layout exists")
     var content_scroll := _find(ui, "MobileContentScroll") as ScrollContainer
     _assert(content_scroll != null and content_scroll.get_global_rect().size.y >= 220.0, "Portrait content viewport occupies usable vertical space")
     _assert(_find(ui, "MobileIncidentFeature") != null, "Incident has an illustrated feature")
+    _assert(_find(ui, "MobileSettingsButton") != null, "Settings are reachable from any active case")
     var character := _find(ui, "MobileIncidentCharacter") as TextureRect
     _assert(character != null and character.texture != null, "The actual illustrated Oddford character is present")
     _assert((_find(ui, "MobileIncidentTown") as TextureRect).texture != null, "Real Oddford town illustration is loaded")
@@ -38,6 +79,8 @@ func _check_mobile() -> void:
     ui._change_page("stamps")
     await _run_frame()
     _assert(_find(ui, "MobileStampPreview") != null, "Probability / cost preview available")
+    var forecast := _find(ui, "MobileRealityForecast") as Label
+    _assert(forecast != null and forecast.text.contains(ui.sim.forecast()), "Mobile uses the actual simulation correction forecast, same as desktop")
     var seal := _find(ui, "MobileSealArt_nudge") as TextureRect
     _assert(seal != null and seal.texture != null, "Original stamp seal art is visible in the chooser")
     _assert(_find(ui, "MobileAdvanceDayButton") == null, "Cannot advance before filing a stamp")
@@ -88,6 +131,8 @@ func _check_mobile() -> void:
     _assert(theater != null, "Mobile theater is mounted as modal")
     var theater_scroll := _find(ui, "MobileTheaterScroll") as ScrollContainer
     _assert(theater_scroll != null and theater_scroll.get_global_rect().size.y >= 220.0, "Theater artwork viewport has usable height")
+    var actor := _find(ui, "MobileBeatActor0") as TextureRect
+    _assert(actor != null and actor.texture != null, "Causality Theater has original character portraits for recorded beats")
     var town := _find(ui, "MobileCausalityTown") as TextureRect
     _assert(town != null and town.texture != null, "Actual illustrated Oddford stage loads in theater")
     if theater != null:
@@ -100,12 +145,67 @@ func _check_mobile() -> void:
     _assert(ui.page == "evidence", "Native evidence view opens")
     ui._change_page("town")
     _assert(ui.page == "town", "Town view available on touch")
+    _assert((_find(ui, "MobileInteractiveTownImage") as TextureRect).texture != null, "Original interactive Oddford map is loaded")
+    _assert(_find(ui, "MobileTownWitnessDocket") != null, "Town has a location-specific incident docket")
+    for district in ["TownHall", "Bakery", "PostOffice", "HighStreet", "PublicGardens", "ParadeHall"]:
+        _assert(_find(ui, "MobileTownLocation" + district) != null, "Town district is selectable: " + district)
+        _assert(_find(ui, "MobileTownPin_" + district) != null, "Town map has an illustrated touch hotspot: " + district)
+    var replay := _find(ui, "MobileTownReplayButton") as Button
+    _assert(replay != null and not replay.disabled, "Recorded days can be replayed through the same theater")
+    ui._open_town_replay()
+    _assert(ui.theater != null and ui.theater.historical_replay, "Archived replay displays recorded simulation events with historical mode")
+    if ui.theater != null:
+        var archived_count: int = int(ui.theater.recorded.size())
+        _assert(archived_count > 0, "Historical replay has real incident records")
+        ui.theater.call("_finish")
+        var archival := _find(ui.theater, "MobileDailySummary") as Label
+        _assert(archival != null and archival.text.contains("ORIGINAL CHRONICLE"), "Historical replay never invents old stamp or Strain data")
+        ui._close_theater()
+    ui._select_town_location("Bakery")
+    _assert(ui.selected_town_location == "Bakery", "Changing a district updates the selected local office")
+    ui._change_page("ministry")
+    _assert(_find(ui, "MobileDepartmentDossier_lost_property") != null, "Department board has original illustrated office dossiers")
+    var department_face := _find(ui, "MobileDepartmentPortrait_lost_property") as TextureRect
+    _assert(department_face != null and department_face.texture != null, "Original Ministry department character portrait loads")
+    ui._change_page("assignments")
+    for case_id in ["fowl", "bakery", "thursday", "apology"]:
+        _assert(_find(ui, "MobileAssignmentDossier_" + case_id) != null, "Illustrated assignment dossier exists: " + case_id)
+        var case_face := _find(ui, "MobileAssignmentPortrait_" + case_id) as TextureRect
+        var case_art := _find(ui, "MobileAssignmentIllustration_" + case_id) as TextureRect
+        _assert(case_face != null and case_face.texture != null, "Original case cast portrait exists: " + case_id)
+        _assert(case_art != null and case_art.texture != null, "Original case illustration exists: " + case_id)
+    ui._change_page("cast")
+    _assert(_find(ui, "MobileCastGallery") != null, "Mobile has the desktop cast gallery")
+    for resident in ["gerald", "clerk", "mayor", "reporter", "organizer", "baker"]:
+        var portrait := _find(ui, "MobileResident_" + resident) as TextureRect
+        _assert(portrait != null and portrait.texture != null, "Real cast art available: " + resident)
+    ui._change_page("settings")
+    _assert(_find(ui, "MobileReducedMotionToggle") != null, "Reduced motion preference is controllable")
+    var director := root.get_node_or_null("MusicDirector")
+    if director != null:
+        var old_music: bool = bool(director.get("music_enabled"))
+        var old_volume: float = float(director.get("music_volume"))
+        _assert(_find(ui, "MobileMusicToggle") != null, "Mobile shares desktop music controls")
+        ui._toggle_music()
+        _assert(bool(director.get("music_enabled")) != old_music, "Music toggle updates real MusicDirector")
+        ui._toggle_music()
+        _assert(bool(director.get("music_enabled")) == old_music, "Music toggle is reversible")
+        ui._adjust_music(-0.10)
+        _assert(float(director.get("music_volume")) <= old_volume, "Music volume is controlled in the real director")
+        director.call("set_music_volume", old_volume)
     ui._change_page("help")
     _assert(ui.page == "help", "Mobile help accessible")
     ui._change_page("tutorial")
     var before: int = ui.sim.profile["merit"]
+    var day_before: int = ui.sim.day
     ui._next_tutorial()
-    _assert(ui.sim.profile["merit"] == before, "Mobile tutorial cannot change player Merit")
+    _assert(ui.practice != null and ui.tutorial_step == 1, "Briefing starts a separate seeded practice simulation")
+    _assert(ui.practice.pending.is_empty(), "Practice starts with no pre-filed stamp")
+    ui._next_tutorial()
+    _assert(str(ui.practice.pending.get("stamp", "")) == "nudge" and str(ui.practice.pending.get("target", "")) == "sandwich", "Player action files the actual practice Nudge")
+    ui._next_tutorial()
+    _assert(ui.tutorial_step == 3 and ui.practice.day > 1, "Practice advances only after explicit player action")
+    _assert(ui.sim.profile["merit"] == before and ui.sim.day == day_before and ui.sim.pending.is_empty(), "Practice cannot change real progress, Merit or stamp filings")
     ui._finish_tutorial()
     _assert(ui.page == "incidents", "Tutorial exits to the real case")
     # Test screen-size changes without losing the actual case state.
