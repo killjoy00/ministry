@@ -80,7 +80,11 @@ func _build() -> void:
     background.color = Color("#132b31")
     background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     add_child(background)
-    var center := CenterContainer.new()
+    # Center only horizontally. A CenterContainer vertically shrinks the
+    # expanding ScrollContainer, hiding every scene, beat, and illustration.
+    var center := HBoxContainer.new()
+    center.name = "MobileTheaterSafeSurface"
+    center.alignment = BoxContainer.ALIGNMENT_CENTER
     center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     add_child(center)
     var margins := MarginContainer.new()
