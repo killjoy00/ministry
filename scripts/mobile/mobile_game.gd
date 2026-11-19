@@ -672,11 +672,13 @@ func _preview(rule: Dictionary) -> String:
 
 func _select_event(id: String) -> void:
     selected_event = id
+    confirm_unstamped_day = false
     feedback = ""
     _render()
 
 func _select_stamp(id: String) -> void:
     selected_stamp = id
+    confirm_unstamped_day = false
     feedback = ""
     _render()
 
@@ -695,7 +697,9 @@ func _file_stamp() -> void:
         _render()
         return
     if sim.stage_stamp(selected_stamp, selected_event):
-        feedback = "Filed. Advance the day to see the consequences."
+        confirm_unstamped_day = false
+        var rule: Dictionary = sim.get_rule(selected_event)
+        feedback = "FILED: %s on %s." % [str(Simulation.STAMPS[selected_stamp]["name"]), str(rule.get("title", "incident"))]
         var audio := get_node_or_null("/root/MusicDirector")
         if audio != null:
             audio.call("play_stamp_effect")
@@ -705,12 +709,31 @@ func _file_stamp() -> void:
 
 func _undo() -> void:
     sim.clear_stamp()
+    confirm_unstamped_day = false
     feedback = "Today's filings have been cleared."
+    _render()
+
+func _arm_unstamped_day() -> void:
+    if _filed_count() > 0:
+        return
+    confirm_unstamped_day = true
+    feedback = "You will let Oddford run without an intervention."
+    _render()
+
+func _cancel_unstamped_day() -> void:
+    confirm_unstamped_day = false
+    feedback = ""
     _render()
 
 func _advance_day() -> void:
     if sim.status != "active":
         return
+    # No filing may resolve silently. The separate no-stamp button must
+    # explicitly arm and confirm an unstamped day.
+    if _filed_count() == 0 and not confirm_unstamped_day:
+        _arm_unstamped_day()
+        return
+    confirm_unstamped_day = false
     var old_count: int = sim.history.size()
     var day: int = sim.day
     var old_support: int = sim.support
@@ -765,6 +788,7 @@ func _start_case(id: String) -> void:
         return
     selected_event = ""
     selected_stamp = "nudge"
+    confirm_unstamped_day = false
     feedback = "New assignment accepted."
     page = "incidents"
     _render()
