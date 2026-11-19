@@ -34,9 +34,10 @@ save, or network permission has been added.
 - Case settlement, Merit upgrades, all twelve departments, and the four-case
   selection board are available on touch. Existing save schema v3 is reused;
   mobile platforms keep their own local device save files.
-- Touch targets are at least 42-60 logical pixels and scrollable text is
-  available without relying on gamepad buttons. Layout accounts for device
-  display safe area.
+- Touch targets are at least 42-60 logical pixels, with swipe scrolling over
+  incident cards, stamp tiles, evidence, and longer screens. All nested controls
+  propagate drag gestures into the scrollable content; selecting an incident or
+  stamp does not jump back to the top. Layout accounts for the safe area.
 - The original 1280 x 800 desktop screen and controller bindings are untouched.
 
 ## Android
@@ -70,6 +71,7 @@ and orientation keeping state intact. CI runs it alongside the Steam Deck tests.
 CI also captures **14 unaltered game-rendered phone screenshots**, including
 town, residents, briefing, settings, chronicle, and Causality Theater.
 The native Android emulator must show nonblank app art, navigate actual taps,
+verify incident-list and stamp-gallery swipes against screenshot changes,
 and survive Back/home-resume: an earlier real emulator run showed a gray
 app surface, so a running Android process is not sufficient proof.
 Physical Android and iPhone checks remain required, including taps, scroll,
