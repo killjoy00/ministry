@@ -5,8 +5,10 @@ extends Control
 
 signal close_requested
 signal log_requested
+signal inspect_requested(event_id: String)
 
 const DesktopTheater = preload("res://scripts/ui/causality_theater.gd")
+const Causal = preload("res://scripts/simulation/causal_inspection.gd")
 const PAPER = Color("#f1e2c4")
 const INK = Color("#273c41")
 const BURGUNDY = Color("#7e454c")
@@ -156,6 +158,7 @@ func _build() -> void:
     status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     file_row.add_child(status_label)
     content.add_child(_label("INCIDENTS ACTUALLY RECORDED", 15, Color("#f5e1bf"), true))
+    content.add_child(_label("The sequence is chronological. A link is shown only when the simulation records a cause.", 13, Color("#d7ded2")))
     if featured.is_empty():
         content.add_child(_label("The town has filed a very quiet day.", 16, CREAM))
     var names_by_id: Dictionary = {}
@@ -169,9 +172,26 @@ func _build() -> void:
         var column := VBoxContainer.new()
         column.add_theme_constant_override("separation", 3)
         panel.add_child(column)
+        var causes: Array = entry.get("causes", [])
+        var parent_names: Array[String] = []
+        for parent in causes:
+            parent_names.append(Causal._event_name(simulation, str(parent)))
+        if not parent_names.is_empty():
+            var link := _label("DOCUMENTED CAUSAL LINK  ↓  " + ", ".join(PackedStringArray(parent_names)), 13, GREEN, true)
+            link.name = "MobileCausalLink%d" % i
+            column.add_child(link)
+        else:
+            column.add_child(_label("NO RECORDED PARENT INCIDENT  /  START OF A POSSIBLE CHAIN", 12, MUTED))
         var row := HBoxContainer.new()
-        row.add_theme_constant_override("separation", 8)
+        row.add_theme_constant_override("separation", 7)
         column.add_child(row)
+        var actor := TextureRect.new()
+        actor.name = "MobileBeatActor%d" % i
+        actor.texture = load("res://assets/illustrated/portrait_%s.webp" % _portrait_for_event(str(entry.get("id", "")))) as Texture2D
+        actor.custom_minimum_size = Vector2(60, 77)
+        actor.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        actor.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        row.add_child(actor)
         var icon := TextureRect.new()
         icon.texture = load("res://assets/illustrated/incident_%s_small.webp" % _family(str(entry.get("id", "")))) as Texture2D
         icon.custom_minimum_size = Vector2(55, 55)
@@ -183,13 +203,15 @@ func _build() -> void:
         row.add_child(text)
         text.add_child(_label(str(entry.get("title", "Incident")), 17, INK, true))
         text.add_child(_label("+%d MOMENTUM" % int(entry.get("support", 0)), 13, BURGUNDY))
-        var causes: Array = entry.get("causes", [])
-        var parent_names: Array[String] = []
-        for parent in causes:
-            if names_by_id.has(str(parent)):
-                parent_names.append(str(names_by_id[str(parent)]))
-        if not parent_names.is_empty():
-            column.add_child(_label("CAUSED BY: " + ", ".join(PackedStringArray(parent_names)), 13, GREEN))
+        var event_id: String = str(entry.get("id", ""))
+        var rule: Dictionary = simulation.get_rule(event_id)
+        if not rule.is_empty():
+            text.add_child(_label(str(rule.get("place", "Oddford")).to_upper(), 12, GREEN, true))
+            var inspect := _button("INSPECT DOCUMENTED CAUSES", false)
+            inspect.name = "MobileBeatInspect%d" % i
+            inspect.custom_minimum_size.y = 48
+            inspect.pressed.connect(_request_inspect.bind(event_id))
+            column.add_child(inspect)
         panel.modulate.a = 0.0
         cards.append(panel)
     summary = _label("", 16, GOLD, true)
@@ -243,6 +265,21 @@ func _finish() -> void:
     summary.text = "%d INCIDENTS  /  %+d MOMENTUM\nREALITY STRAIN %d -> %d%s" % [recorded.size(), after_support - before_support, before_strain, after_strain, extra]
     summary.visible = true
     skip_button.disabled = true
+
+func _request_inspect(id: String) -> void:
+    inspect_requested.emit(id)
+
+func _portrait_for_event(id: String) -> String:
+    var key: String = id.to_lower()
+    if "bake" in key or "bread" in key or "sandwich" in key or "recipe" in key:
+        return "baker"
+    if "paper" in key or "press" in key or "news" in key or "camera" in key or "report" in key:
+        return "reporter"
+    if "mayor" in key or "election" in key or "vote" in key or "council" in key:
+        return "mayor"
+    if "post" in key or "letter" in key or "organize" in key:
+        return "organizer"
+    return "gerald"
 
 func _family(id: String) -> String:
     if "rain" in id or "fair" in id or "parade" in id or "calendar" in id:
