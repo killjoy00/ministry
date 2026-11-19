@@ -10,11 +10,27 @@ save, or network permission has been added.
 
 - Portrait-locked handset interface in this beta, with a centered, width-aware column on tablets. Android/iOS device rotation is not enabled yet; simulated orientation/resolution changes are covered by headless tests.
 - Incident selection, four stamp choices, Influence/Strain and odds preview,
-  WHY? / evidence inspection, full Chronicle, town view, and optional tutorial.
+  **the same live `sim.forecast()` correction forecast shown on desktop**,
+  WHY? / evidence inspection, and the full Chronicle.
+- Oddford is a **touchable six-district map** using the existing desktop
+  district positions. Its local witness dockets filter real eligible cases by
+  place, let players choose/inspect them, and show recorded incidents. The
+  **archived day replay** uses only recorded events and deliberately labels
+  unrecorded historic stamp/Strain data as unavailable. The six original
+  illustrated resident portraits also have a phone-native gallery.
+- Miss Quill's optional briefing steps through **three actual practice
+  actions** (start a separate seeded simulation, file its Nudge, advance its
+  day) before reviewing the recorded causal history. Practice never touches
+  the player's real active case, Merit or filings.
+- Audio controls in Office Settings call the same `MusicDirector` as
+  desktop: persistent on/off and volume. Reduced-motion settings are also
+  saved in the same local configuration file as desktop.
 - File up to **one** incident, or **two distinct** incidents with Double Booking,
   each day. A zero-stamp day is allowed; spontaneous events still happen.
-- Tap **Advance Day** for a short skippable Causality Theater with illustrated
-  genuine incidents, documented source events, and daily result deltas.
+- Tap **Advance Day** for a short skippable Causality Theater with original
+  character portraits and incident art, documented source events, explicit
+  actual-cause links, direct evidence inspection, and daily result deltas.
+  The animation can be skipped or disabled with Reduced Motion.
 - Case settlement, Merit upgrades, all twelve departments, and the four-case
   selection board are available on touch. Existing save schema v3 is reused;
   mobile platforms keep their own local device save files.
@@ -51,6 +67,11 @@ signing secrets should be copied into the Ministry repository.
 mobile scene, 390x844 and 844x390 layouts, incident selection, filing, undo,
 Double Booking, history-based theater, evidence, help/tutorial isolation,
 and orientation keeping state intact. CI runs it alongside the Steam Deck tests.
+CI also captures **13 unaltered game-rendered phone screenshots**, including
+town, residents, briefing, settings, chronicle, and Causality Theater.
+The native Android emulator must show nonblank app art, navigate actual taps,
+and survive Back/home-resume: an earlier real emulator run showed a gray
+app surface, so a running Android process is not sufficient proof.
 Physical Android and iPhone checks remain required, including taps, scroll,
 notches, suspend/resume, sound interruptions, font scaling, and save persistence.
 
