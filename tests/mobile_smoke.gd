@@ -163,6 +163,17 @@ func _check_mobile() -> void:
         ui._close_theater()
     ui._select_town_location("Bakery")
     _assert(ui.selected_town_location == "Bakery", "Changing a district updates the selected local office")
+    ui._change_page("ministry")
+    _assert(_find(ui, "MobileDepartmentDossier_lost_property") != null, "Department board has original illustrated office dossiers")
+    var department_face := _find(ui, "MobileDepartmentPortrait_lost_property") as TextureRect
+    _assert(department_face != null and department_face.texture != null, "Original Ministry department character portrait loads")
+    ui._change_page("assignments")
+    for case_id in ["fowl", "bakery", "thursday", "apology"]:
+        _assert(_find(ui, "MobileAssignmentDossier_" + case_id) != null, "Illustrated assignment dossier exists: " + case_id)
+        var case_face := _find(ui, "MobileAssignmentPortrait_" + case_id) as TextureRect
+        var case_art := _find(ui, "MobileAssignmentIllustration_" + case_id) as TextureRect
+        _assert(case_face != null and case_face.texture != null, "Original case cast portrait exists: " + case_id)
+        _assert(case_art != null and case_art.texture != null, "Original case illustration exists: " + case_id)
     ui._change_page("cast")
     _assert(_find(ui, "MobileCastGallery") != null, "Mobile has the desktop cast gallery")
     for resident in ["gerald", "clerk", "mayor", "reporter", "organizer", "baker"]:
