@@ -627,7 +627,13 @@ func _bottom_bar(parent: VBoxContainer) -> void:
         back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         back.pressed.connect(_change_page.bind("incidents" if sim.status == "active" else "results"))
         footer.add_child(back)
-    elif ["help", "town", "tutorial"].has(page):
+    elif page == "tutorial":
+        var skip := _button("SKIP BRIEFING / RETURN TO CASE", true, 60)
+        skip.name = "MobileSkipBriefingFooter"
+        skip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        skip.pressed.connect(_finish_tutorial)
+        footer.add_child(skip)
+    elif ["help", "town"].has(page):
         var back := _button("BACK TO CASE", true, 60)
         back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         back.pressed.connect(_change_page.bind("incidents" if sim.status == "active" else "results"))
