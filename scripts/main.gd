@@ -3,6 +3,7 @@ extends Control
 
 const SimulationEngine = preload("res://scripts/simulation/case_simulation.gd")
 const LivingTown = preload("res://scripts/ui/living_town.gd")
+const CausalityTheater = preload("res://scripts/ui/causality_theater.gd")
 const MinistryBoard = preload("res://scripts/ui/ministry_board.gd")
 const AssignmentBoard = preload("res://scripts/ui/assignment_board.gd")
 const CausalityInspector = preload("res://scripts/ui/causality_inspector.gd")
@@ -162,6 +163,13 @@ func _advance_day() -> void:
 	if sim.status != "active":
 		return
 	var previous_count: int = sim.history.size()
+	var resolved_day: int = sim.day
+	var old_support: int = sim.support
+	var old_strain: int = sim.strain
+	var filings: Array = []
+	for filed in [sim.pending, sim.second_pending]:
+		if not filed.is_empty():
+			filings.append(filed.duplicate(true))
 	sim.advance_day()
 	var recorded: Array = []
 	for item in sim.history.slice(previous_count):
@@ -172,9 +180,9 @@ func _advance_day() -> void:
 			recorded.append(item)
 	feedback = "The daily register has been updated."
 	_render()
-	# Replays are entirely sourced from this day's actual simulation ledger.
-	# They never alter the game state, chances, rewards or available stamps.
-	_open_town_report(recorded)
+	# A brisk reconstruction of REAL events replaces the automatic long replay.
+	# The full chronological town report remains available at X / FULL REPLAY.
+	_open_daily_theater(recorded, filings, resolved_day, old_support, old_strain)
 
 func _toggle_music() -> void:
 	var director := get_node_or_null("/root/MusicDirector")
@@ -191,6 +199,14 @@ func _adjust_music(delta: float) -> void:
 	director.call("set_music_volume", float(director.get("music_volume")) + delta)
 	feedback = "Music volume: %d%%." % roundi(float(director.get("music_volume")) * 100.0)
 	_render()
+
+func _open_daily_theater(records: Array, filings: Array, resolved_day: int, old_support: int, old_strain: int) -> void:
+	_close_gallery()
+	gallery_overlay = CausalityTheater.new()
+	gallery_overlay.configure(sim, records, filings, resolved_day, old_support, sim.support, old_strain, sim.strain)
+	gallery_overlay.close_requested.connect(_close_gallery)
+	gallery_overlay.full_replay_requested.connect(_open_town_report.bind(records.duplicate(true)))
+	add_child(gallery_overlay)
 
 func _open_town_report(records: Array) -> void:
 	_close_gallery()

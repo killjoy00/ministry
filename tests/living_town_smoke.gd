@@ -57,22 +57,30 @@ func _run() -> void:
 	scene._advance_day()
 	await process_frame
 	await process_frame
-	var report: Control = scene.gallery_overlay
-	_expect(report != null, "Every new day shows a report scene")
-	if report != null:
-		_expect(report.replay_mode, "Day report runs in replay mode")
+	var quick: Control = scene.gallery_overlay
+	_expect(quick != null and quick.name == "DailyCausalityTheater", "Every new day opens the skippable quick reconstruction")
+	if quick != null:
 		var exact_events: Array = []
 		for item in scene.sim.history.slice(old_size):
 			var event_id: String = str(item.get("id", ""))
 			if not scene.sim.get_rule(event_id).is_empty() or event_id.begins_with("correction_"):
 				exact_events.append(item)
-		_expect(report.replay_events.size() == exact_events.size(), "Only actual simulation events are replayed, not internal notes")
-		if not exact_events.is_empty():
-			_expect(str(report.replay_events[0]["id"]) == str(exact_events[0]["id"]), "First replay source event matches history")
-			report._skip_replay()
-			_expect(report.replay_paused, "Replay can be skipped immediately")
-			report._previous_event()
-			_expect(report.replay_paused, "Player can inspect earlier causes")
+		_expect(quick.recorded == exact_events, "Quick reconstruction shows only actual events, not administrative notes")
+		quick._finish_animation()
+		_expect(quick.completed, "Quick reconstruction can be skipped to its summary")
+		quick._view_full_replay()
+		await process_frame
+		var report: Control = scene.gallery_overlay
+		_expect(report != null and report.name == "LivingOddford", "Full chronological town replay is preserved")
+		if report != null:
+			_expect(report.replay_mode, "Full day report runs in replay mode")
+			_expect(report.replay_events.size() == exact_events.size(), "Full replay contains every real event")
+			if not exact_events.is_empty():
+				_expect(str(report.replay_events[0]["id"]) == str(exact_events[0]["id"]), "First replay event matches history")
+				report._skip_replay()
+				_expect(report.replay_paused, "Full town replay can be skipped")
+				report._previous_event()
+				_expect(report.replay_paused, "Player can investigate older recorded causes")
 		scene._close_gallery()
 	for d in range(6):
 		scene._advance_day()

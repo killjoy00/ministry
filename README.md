@@ -64,3 +64,7 @@ All four assignments now have **109 more hand-authored, fact-linked incidents**:
 ### Stamp desk
 
 Pick an incident, choose a stamp, then **File Stamp** (X) and **Advance Day** (Y). The preview shows chance and cost; choosing a stamp alone does not apply it. See [Stamp desk guide](docs/STAMP_DESK_GUIDE.md).
+
+## The daily Causality Theater (v0.6)
+
+Advancing the day triggers a brief, skippable storybook reconstruction: one rubber-stamp impact, up to four **actual** recorded incidents with illustrated paper actors and documented cause/effect threads, then the register shows real totals and changes. Press **Y / Space** to skip immediately, **X / R** for the full chronological town replay, or **A / B** to return. Reduced motion is inherited from the town view. This never changes simulation outcomes or permanent progress. See [docs/DAILY_CAUSALITY_THEATER.md](docs/DAILY_CAUSALITY_THEATER.md).

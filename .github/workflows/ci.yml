@@ -53,3 +53,6 @@ jobs:
         run: godot --headless --path . --script res://tests/incident_expansion_smoke.gd
       - name: First-day practice and causal dossier regression
         run: godot --headless --path . --script res://tests/onboarding_causality_smoke.gd
+
+      - name: Skippable daily causality theatre with true event provenance
+        run: godot --headless --path . --script res://tests/daily_theater_smoke.gd
