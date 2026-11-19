@@ -19,7 +19,7 @@ func _exercise() -> void:
     scene._render()
     await process_frame
     await process_frame
-    _assert_visible(scene, ["X  APPROVE", "Y  ADVANCE DAY"], ["THE OFFICIAL CHRONICLE"])
+    _assert_visible(scene, ["X  FILE STAMP", "Y  ADVANCE DAY"], ["THE OFFICIAL CHRONICLE"])
     _check(scene.get_viewport().get_visible_rect().size == Vector2(1280, 800), "Steam Deck viewport must be 1280x800")
     for i in range(7):
         scene._advance_day()
@@ -31,7 +31,7 @@ func _exercise() -> void:
     await process_frame
     await process_frame
     _check(scene.sim.status == "active", "another case must be available")
-    _assert_visible(scene, ["X  APPROVE", "Y  ADVANCE DAY"], ["THE OFFICIAL CHRONICLE"])
+    _assert_visible(scene, ["X  FILE STAMP", "Y  ADVANCE DAY"], ["THE OFFICIAL CHRONICLE"])
     root.remove_child(scene)
     scene.free()
     if failures.is_empty():
