@@ -606,33 +606,33 @@ func _event_illustration(id: String) -> String:
 	return "res://assets/illustrated/incident_%s.webp" % _incident_name(id)
 
 func _stamp_effect_preview(rule: Dictionary) -> String:
-    if rule.is_empty(): return "Pick an incident on the left first."
-    var base: int = roundi(float(rule["chance"]) * 100.0)
-    match selected_stamp:
-        "nudge":
-            return "%d%% -> %d%% chance if attempted today. Not guaranteed." % [base, roundi(minf(0.98, float(rule["chance"]) + 0.55) * 100.0)]
-        "misfile":
-            if (rule["misfile_facts"] as Array).is_empty():
-                return "This incident has no alternative outcome to redirect."
-            return "%d%% -> %d%% chance; replaces the normal result if it happens." % [base, roundi(minf(0.98, float(rule["chance"]) + 0.40) * 100.0)]
-        "reschedule":
-            return "Do not try it today. Try it tomorrow with guaranteed success if still eligible."
-        "domino":
-            return "%d%% -> %d%% chance; guarantees the first newly eligible follow-up if it happens." % [base, roundi(minf(0.98, float(rule["chance"]) + 0.25) * 100.0)]
-    return ""
+	if rule.is_empty(): return "Pick an incident on the left first."
+	var base: int = roundi(float(rule["chance"]) * 100.0)
+	match selected_stamp:
+		"nudge":
+			return "%d%% -> %d%% chance if attempted today. Not guaranteed." % [base, roundi(minf(0.98, float(rule["chance"]) + 0.55) * 100.0)]
+		"misfile":
+			if (rule["misfile_facts"] as Array).is_empty():
+				return "This incident has no alternative outcome to redirect."
+			return "%d%% -> %d%% chance; replaces the normal result if it happens." % [base, roundi(minf(0.98, float(rule["chance"]) + 0.40) * 100.0)]
+		"reschedule":
+			return "Do not try it today. Try it tomorrow with guaranteed success if still eligible."
+		"domino":
+			return "%d%% -> %d%% chance; guarantees the first newly eligible follow-up if it happens." % [base, roundi(minf(0.98, float(rule["chance"]) + 0.25) * 100.0)]
+	return ""
 
 func _stamp_block_reason(rule: Dictionary) -> String:
-    if rule.is_empty(): return "Select an available incident first."
-    if selected_stamp == "misfile" and (rule["misfile_facts"] as Array).is_empty():
-        return "Misfile cannot change this incident. Choose another stamp or incident."
-    if sim.has_department("double_booking") and not sim.pending.is_empty() and str(sim.pending.get("target", "")) == selected_event:
-        return "Your first filed stamp already targets this incident. Choose another."
-    var price: int = int(SimulationEngine.STAMPS[selected_stamp]["cost"])
-    if sim.has_department("double_booking") and not sim.pending.is_empty():
-        price += int(SimulationEngine.STAMPS[sim.pending["stamp"]]["cost"])
-    if sim.influence < price:
-        return "Not enough Influence: %d needed, %d available." % [price, sim.influence]
-    return "This stamp cannot be filed for the selected incident."
+	if rule.is_empty(): return "Select an available incident first."
+	if selected_stamp == "misfile" and (rule["misfile_facts"] as Array).is_empty():
+		return "Misfile cannot change this incident. Choose another stamp or incident."
+	if sim.has_department("double_booking") and not sim.pending.is_empty() and str(sim.pending.get("target", "")) == selected_event:
+		return "Your first filed stamp already targets this incident. Choose another."
+	var price: int = int(SimulationEngine.STAMPS[selected_stamp]["cost"])
+	if sim.has_department("double_booking") and not sim.pending.is_empty():
+		price += int(SimulationEngine.STAMPS[sim.pending["stamp"]]["cost"])
+	if sim.influence < price:
+		return "Not enough Influence: %d needed, %d available." % [price, sim.influence]
+	return "This stamp cannot be filed for the selected incident."
 
 func _stamp_desk(parent: HBoxContainer) -> void:
 	var panel := _card(Color("#f0dfbb"), Color("#af875f"), 2)

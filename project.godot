@@ -5,6 +5,8 @@ config_version=5
 [application]
 config/name="The Ministry of Coincidences"
 run/main_scene="res://scenes/main.tscn"
+run/main_scene.mobile="res://scenes/mobile_main.tscn"
+config/icon.mobile="res://assets/mobile/icon_1024.png"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
@@ -12,12 +14,18 @@ MusicDirector="*res://scripts/audio/music_director.gd"
 
 [display]
 window/size/viewport_width=1280
+window/size/viewport_width.mobile=430
 window/size/viewport_height=800
+window/size/viewport_height.mobile=932
 window/stretch/mode="canvas_items"
+window/handheld/orientation.mobile=1
 window/size/window_width_override=1280
+window/size/window_width_override.mobile=430
 window/size/window_height_override=800
+window/size/window_height_override.mobile=932
 
 [rendering]
+textures/vram_compression/import_etc2_astc=true
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false

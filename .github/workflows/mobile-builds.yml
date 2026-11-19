@@ -1,0 +1,101 @@
+name: Android beta and mobile tests
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/mobile/**'
+      - 'scenes/mobile_main.tscn'
+      - 'assets/mobile/**'
+      - 'tests/mobile_smoke.gd'
+      - 'project.godot'
+      - 'export_presets.cfg'
+      - '.github/workflows/mobile-builds.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/mobile/**'
+      - 'scenes/mobile_main.tscn'
+      - 'assets/mobile/**'
+      - 'project.godot'
+      - 'export_presets.cfg'
+permissions:
+  contents: read
+jobs:
+  mobile-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    container:
+      image: barichello/godot-ci:4.7.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install fontconfig runtime in headless Godot container
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends libfontconfig1 fontconfig
+      - name: Import and compile mobile scene
+        run: godot --headless --path . --editor --quit
+      - name: Mobile portrait, rotation and full gameplay loop
+        run: godot --headless --path . --script res://tests/mobile_smoke.gd
+  android-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    container:
+      image: barichello/godot-ci:4.7.2
+    needs: [mobile-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install headless Godot fontconfig runtime
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends libfontconfig1 fontconfig
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+      - name: Configure Godot 4.7.2 export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_dir=/root/.local/share/godot/export_templates/4.7.2.stable
+          dest_dir="$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          test -s "$source_dir/android_debug.apk"
+          test -s "$source_dir/android_release.apk"
+          mkdir -p "$(dirname "$dest_dir")"
+          if [ ! -e "$dest_dir" ]; then ln -s "$source_dir" "$dest_dir"; fi
+          test -s "$dest_dir/android_debug.apk"
+      - name: Install SDK components and configure Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platform-tools' 'build-tools;35.0.1' 'platforms;android-35'
+          mkdir -p "$HOME/.config/godot"
+          GODOT_SETTINGS="$HOME/.config/godot/editor_settings-4.tres"
+          cat > "$GODOT_SETTINGS" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path="$ANDROID_HOME"
+          export/android/java_sdk_path="$JAVA_HOME"
+          EOF
+          godot --headless --path . --editor --quit
+          keytool -genkeypair -noprompt -keystore /tmp/ministry-debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Ministry,C=US"
+      - name: Build installable Android QA APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH=/tmp/ministry-debug.keystore
+          export GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android
+          godot --headless --path . --export-debug 'Android Debug APK' build/ministry-android-debug.apk
+          test -s build/ministry-android-debug.apk
+          unzip -t build/ministry-android-debug.apk | tail -1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ministry-android-debug-${{ github.run_number }}
+          path: build/ministry-android-debug.apk
+          retention-days: 14
+          if-no-files-found: error
