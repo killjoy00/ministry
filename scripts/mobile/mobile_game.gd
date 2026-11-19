@@ -525,7 +525,28 @@ func _help(body: VBoxContainer) -> void:
     body.add_child(town)
 
 func _bottom_bar(parent: VBoxContainer) -> void:
-    if not feedback.is_empty():
+    # Keep the selected incident and filed stamp visible next to the real action.
+    # Never make players hunt for FILE inside a long scroll while ADVANCE is sticky.
+    if sim.status == "active" and page == "stamps":
+        var ribbon := _panel(PAPER, GOLD, 2, 8)
+        ribbon.name = "MobileFilingRibbon"
+        parent.add_child(ribbon)
+        var info := VBoxContainer.new()
+        info.add_theme_constant_override("separation", 2)
+        ribbon.add_child(info)
+        if _filed_count() == 0:
+            var target: Dictionary = sim.get_rule(selected_event)
+            info.add_child(_label("YOUR INCIDENT: " + str(target.get("title", "Choose an incident")), 15, INK, true))
+            info.add_child(_label("YOUR STAMP: %s  •  NOT YET FILED" % str(STAMP_LABELS[selected_stamp]), 14, BURGUNDY, true))
+        else:
+            info.add_child(_label("%d STAMP%s FILED FOR TODAY" % [_filed_count(), "" if _filed_count() == 1 else "S"], 14, GREEN, true))
+            for filing in [sim.pending, sim.second_pending]:
+                if filing.is_empty():
+                    continue
+                var rule: Dictionary = sim.get_rule(str(filing.get("target", "")))
+                var label: String = "%s → %s" % [str(Simulation.STAMPS[str(filing["stamp"])]["name"]), str(rule.get("title", "incident"))]
+                info.add_child(_label(label, 14, INK, true))
+    if not feedback.is_empty() and page != "stamps":
         var note := _label(feedback, 14, Color("#f5dba5"))
         note.name = "MobileFeedback"
         parent.add_child(note)
@@ -534,7 +555,7 @@ func _bottom_bar(parent: VBoxContainer) -> void:
     footer.add_theme_constant_override("separation", 8)
     parent.add_child(footer)
     if sim.status == "active" and page == "incidents":
-        var proceed := _button("CHOOSE STAMP", true, 60)
+        var proceed := _button("NEXT: CHOOSE A STAMP", true, 60)
         proceed.name = "MobileContinueToStamp"
         proceed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         proceed.disabled = selected_event.is_empty()
@@ -544,16 +565,41 @@ func _bottom_bar(parent: VBoxContainer) -> void:
         town.pressed.connect(_change_page.bind("town"))
         footer.add_child(town)
     elif sim.status == "active" and page == "stamps":
-        if sim.has_department("double_booking") and _filed_count() == 1:
-            var second := _button("SECOND INCIDENT", false, 60)
-            second.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-            second.pressed.connect(_change_page.bind("incidents"))
-            footer.add_child(second)
-        var advance := _button("ADVANCE DAY", true, 60)
-        advance.name = "MobileAdvanceDayButton"
-        advance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-        advance.pressed.connect(_advance_day)
-        footer.add_child(advance)
+        if confirm_unstamped_day and _filed_count() == 0:
+            var confirm := _button("CONFIRM: NO STAMP TODAY", true, 60)
+            confirm.name = "MobileConfirmEmptyDayButton"
+            confirm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            confirm.pressed.connect(_advance_day)
+            footer.add_child(confirm)
+            var cancel := _button("CANCEL", false, 60)
+            cancel.pressed.connect(_cancel_unstamped_day)
+            footer.add_child(cancel)
+        elif _filed_count() == 0:
+            var file := _button("FILE %s ON THIS INCIDENT" % str(STAMP_LABELS[selected_stamp]), true, 64)
+            file.name = "MobileFileStampButton"
+            file.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            file.disabled = not _can_file()
+            file.pressed.connect(_file_stamp)
+            footer.add_child(file)
+            var skip := _button("NO STAMP TODAY", false, 64)
+            skip.name = "MobileSkipFilingButton"
+            skip.pressed.connect(_arm_unstamped_day)
+            footer.add_child(skip)
+        else:
+            var advance := _button("ADVANCE DAY  /  %d FILED" % _filed_count(), true, 64)
+            advance.name = "MobileAdvanceDayButton"
+            advance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            advance.pressed.connect(_advance_day)
+            footer.add_child(advance)
+            var undo := _button("UNDO", false, 64)
+            undo.name = "MobileUndoButton"
+            undo.pressed.connect(_undo)
+            footer.add_child(undo)
+            if sim.has_department("double_booking") and _filed_count() == 1:
+                var second := _button("CHOOSE A SECOND INCIDENT", false, 52)
+                second.name = "MobileSecondIncidentButton"
+                second.pressed.connect(_change_page.bind("incidents"))
+                parent.add_child(second)
     elif page == "log":
         var back := _button("BACK TO INCIDENTS" if sim.status == "active" else "BACK TO RESULTS", true, 60)
         back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
