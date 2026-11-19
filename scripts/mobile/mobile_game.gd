@@ -431,13 +431,38 @@ func _town(body: VBoxContainer) -> void:
     _section(body, "ODDFORD / LIVE SURVEILLANCE", "SIX DISTRICTS  /  REAL INCIDENTS, NOT A SECOND SIMULATION")
     var picture := _panel(PAPER, GOLD, 2, 11)
     body.add_child(picture)
+    var map_canvas := Control.new()
+    map_canvas.name = "MobileTownMapCanvas"
+    map_canvas.custom_minimum_size.y = 230
+    map_canvas.clip_contents = true
+    picture.add_child(map_canvas)
     var map := TextureRect.new()
     map.name = "MobileInteractiveTownImage"
     map.texture = load("res://assets/illustrated/oddford_square.webp") as Texture2D
-    map.custom_minimum_size.y = 228
     map.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
     map.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-    picture.add_child(map)
+    map.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    map.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    map_canvas.add_child(map)
+    # These are the exact six district positions used by LivingTown on desktop.
+    # The pins are touch targets; a text list below remains available.
+    var district_points := [Vector2(.51, .54), Vector2(.89, .57), Vector2(.17, .54), Vector2(.38, .77), Vector2(.69, .77), Vector2(.46, .38)]
+    for i in range(TOWN_LOCATIONS.size()):
+        var place: String = TOWN_LOCATIONS[i]
+        var pin := _button(str(i + 1), place == selected_town_location, 46)
+        pin.name = "MobileTownPin_" + place.replace(" ", "")
+        pin.tooltip_text = place
+        pin.add_theme_font_size_override("font_size", 15)
+        pin.anchor_left = district_points[i].x
+        pin.anchor_right = district_points[i].x
+        pin.anchor_top = district_points[i].y
+        pin.anchor_bottom = district_points[i].y
+        pin.offset_left = -24
+        pin.offset_right = 24
+        pin.offset_top = -24
+        pin.offset_bottom = 24
+        pin.pressed.connect(_select_town_location.bind(place))
+        map_canvas.add_child(pin)
     body.add_child(_label("VISIT A DISTRICT  /  TAP TO INSPECT ITS LIVE FILE", 14, LIGHT_ACCENT, true))
     var districts := GridContainer.new()
     districts.name = "MobileTownDistricts"
@@ -502,6 +527,12 @@ func _town(body: VBoxContainer) -> void:
         item.alignment = HORIZONTAL_ALIGNMENT_LEFT
         item.pressed.connect(_show_evidence.bind(str(entry["id"])))
         body.add_child(item)
+    var archived_day: int = _last_recorded_day()
+    var replay := _button("REPLAY DAY %d / ACTUAL RECORDED EVENTS" % archived_day if archived_day > 0 else "NO RECORDED DAY TO REPLAY", true, 58)
+    replay.name = "MobileTownReplayButton"
+    replay.disabled = archived_day == 0
+    replay.pressed.connect(_open_town_replay)
+    body.add_child(replay)
     var cast := _button("MEET ODDFORD'S RESIDENTS", false, 56)
     cast.name = "MobileTownResidentsButton"
     cast.pressed.connect(_change_page.bind("cast"))
@@ -514,6 +545,34 @@ func _select_town_location(place: String) -> void:
 func _select_town_incident(id: String) -> void:
     selected_event = id
     _change_page("stamps")
+
+func _last_recorded_day() -> int:
+    for i in range(sim.history.size() - 1, -1, -1):
+        var event: Dictionary = sim.history[i]
+        var id: String = str(event.get("id", ""))
+        if not sim.get_rule(id).is_empty() or id.begins_with("correction_"):
+            return int(event.get("day", 0))
+    return 0
+
+func _open_town_replay() -> void:
+    var archived_day: int = _last_recorded_day()
+    if archived_day == 0:
+        return
+    var real_events: Array = []
+    for event in sim.history:
+        var id: String = str(event.get("id", ""))
+        if int(event.get("day", 0)) == archived_day and (not sim.get_rule(id).is_empty() or id.begins_with("correction_")):
+            real_events.append(event)
+    if real_events.is_empty():
+        return
+    theater = MobileTheater.new()
+    # Historical filings and intermediate Strain are not saved; never invent
+    # those values or present the replay as an unstamped/natural-only day.
+    theater.configure(sim, real_events, [], archived_day, sim.support, sim.support, sim.strain, sim.strain, true)
+    theater.close_requested.connect(_close_theater)
+    theater.log_requested.connect(_open_theater_log)
+    theater.inspect_requested.connect(_open_theater_evidence)
+    add_child(theater)
 
 func _cast(body: VBoxContainer) -> void:
     _section(body, "REGISTER OF PECULIAR RESIDENTS", "THE ILLUSTRATED CAST OF ODDFORD")
