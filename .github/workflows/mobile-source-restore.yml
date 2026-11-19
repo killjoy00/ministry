@@ -2,7 +2,7 @@ name: Materialize mobile port source and icons
 on:
   push:
     branches: ['mobile/android-ios-beta']
-    paths: ['.mobile-source/mobile-payload.xz']
+    paths: ['.mobile-source/READY']
 permissions:
   contents: write
 jobs:
@@ -20,8 +20,12 @@ jobs:
           python - <<'PY'
           import json, lzma
           from pathlib import Path
-          payload = Path('.mobile-source/mobile-payload.xz').read_bytes()
-          files = json.loads(lzma.decompress(payload).decode('utf-8'))
+          import base64, hashlib
+          parts = sorted(Path('.mobile-source').glob('chunk-*.txt'))
+          assert len(parts) == 6, 'Missing mobile source chunks'
+          text = ''.join(p.read_text().strip() for p in parts)
+          assert hashlib.sha256(text.encode('ascii')).hexdigest() == '4f64263529bf8c5d7f163d80ad0d7a8e3c0c30a716ce50b7bcbffdef24ef2f77', 'Mobile source transfer checksum mismatch'
+          files = json.loads(lzma.decompress(base64.b64decode(text)).decode('utf-8'))
           for item in files:
               path = Path(item['path'])
               path.parent.mkdir(parents=True, exist_ok=True)
