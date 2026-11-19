@@ -67,7 +67,7 @@ signing secrets should be copied into the Ministry repository.
 mobile scene, 390x844 and 844x390 layouts, incident selection, filing, undo,
 Double Booking, history-based theater, evidence, help/tutorial isolation,
 and orientation keeping state intact. CI runs it alongside the Steam Deck tests.
-CI also captures **13 unaltered game-rendered phone screenshots**, including
+CI also captures **14 unaltered game-rendered phone screenshots**, including
 town, residents, briefing, settings, chronicle, and Causality Theater.
 The native Android emulator must show nonblank app art, navigate actual taps,
 and survive Back/home-resume: an earlier real emulator run showed a gray
