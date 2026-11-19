@@ -32,18 +32,18 @@ registered by the publisher in Play Console. Preserve it for all updates.
 Official Android publishing requires a release keystore, a signed **AAB**
 (Gradle build), store listing and privacy/data-safety declarations, and Google
 Play testing/review as applicable. Never commit private signing keys/passwords.
-CI exports a debug APK automatically for PRs and branch pushes.
-The separate Gradle AAB workflow smoke-tests bundle generation on PRs and
-supports signing with a persistent release key on manual runs.
+Ministry CI exports a **QA-only debug APK** on PRs. The persistent upload key
+and release AAB generation live centrally in EZTrivia, reusing the same
+credentials and release process used for StarRun and other apps.
 
 ## iOS
 
 `iOS (Xcode project)` is an Xcode export preset; its Team ID is `3564X3VTDB`, taken from the existing EZTrivia developer
 configuration and expected to match the Ministry App Store Connect app. An iOS artifact is **not**
 a signed IPA and cannot be installed/TestFlighted without Apple signing.
-A macOS/Xcode workflow exports the project; a separate signed archive/upload
-step will require actual App Store Connect credentials and app registration.
-No existing iOS apps or signing values are assumed or modified.
+The EZTrivia release system exports this preset, archives, signs and uploads
+to TestFlight using the existing Apple App Store Connect secrets. No Apple
+signing secrets should be copied into the Ministry repository.
 
 ## Test cases
 
@@ -58,6 +58,6 @@ notches, suspend/resume, sound interruptions, font scaling, and save persistence
 
 The publisher has created both app records as of November 19, 2026. See
 [`MOBILE_STORE_SETUP.md`](MOBILE_STORE_SETUP.md) for the permanent app IDs,
-Android AAB signing secret names, TestFlight API key names, release steps,
+EZTrivia's existing signing infrastructure, release steps,
 store copy, and remaining acceptance gates. Privacy policy:
 [`MOBILE_PRIVACY.md`](MOBILE_PRIVACY.md).
