@@ -32,3 +32,7 @@ Run the department simulation, UI and 250-seed balance tests on PRs and build jo
 
 11. Every new assignment must specify real required facts, a distinct objective, unlock threshold, deadline and balance tests. Preserve v1/v2/v3 save migration, case-specific seeded replay and department effects.
 12. Do not assume that raising a support threshold makes a case harder; seeded simulations must compare natural wins, purposeful stamps and staffed runs.
+
+## Portfolio mobile releases
+
+Use the [mobilereleases registry and dashboard](https://github.com/killjoy00/mobilereleases) and its [release request instructions](https://github.com/killjoy00/mobilereleases/blob/main/mobile-releases/RELEASE_REQUESTS.md) for mobile release work. Mobile publishing is hosted by EZTrivia. Preserve the Steam Deck-first development protocol and all existing mobile acceptance gates. Existing app-specific tests, release approval and exact-artifact requirements take precedence. Do not publish to production without explicit owner approval. Report signed builds, uploads, testing, review and public availability separately, and never expose credentials or private account information.
